@@ -28,12 +28,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "image_topic_name",
             description="ROS Topic Name of sensor_msgs/msg/Image message. (sensor_msgs/msg/Image)",
-            # default_value="/camera/color/image_raw",              ## realsense
+            default_value="/camera/color/image_raw",                ## realsense
             # default_value="/rgb/image_raw",                       ## azure_kinect
             # default_value="/camera/color/image_raw",              ## orbbec_series
             # default_value="/camera/rgb/image_raw",                ## xtion
-            default_value="/conduit/camera/wide/image_raw",
-
         ),
         DeclareLaunchArgument(
             "point_cloud_topic",
@@ -54,11 +52,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "info_topic_name",
             description="Setup the camera info topic name. (sensor_msgs/msg/CameraInfo)",
-            # default_value="/camera/color/camera_info",              ## realsense
+            default_value="/camera/color/camera_info",              ## realsense
             # default_value="/rgb/camera_info",                     ## azure_kinect
             # default_value="",                                     ## orbbec_series
             # default_value="/camera/rgb/camera_info",              ## xtion
-            default_value="/conduit/camera/wide/camera_info",
         ),
         DeclareLaunchArgument(
             "positioning_detection_mode_object",
@@ -82,13 +79,14 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "threshold",
-            default_value="0.56",
+            default_value="0.75",
             description="Minimum probability of a detection to be published",
         ),
         DeclareLaunchArgument(
             "prompt_text",
-            default_value="['metal cup', 'banana', 'pen', 'paper cup', 'headphone', 'dice', 'pringles potato chips', 'game controller']",
             # default_value="['object on the table']",
+            # default_value="['metal cup', 'banana', 'pen', 'paper cup', 'headphone', 'dice', 'pringles potato chips', 'game controller']",
+            # default_value="['red object']",
             description="Text prompt list for SAM3",
         ),
         DeclareLaunchArgument(
