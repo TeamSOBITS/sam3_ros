@@ -84,6 +84,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "prompt_text",
+            default_value="['object']",
             # default_value="['object on the table']",
             # default_value="['metal cup', 'banana', 'pen', 'paper cup', 'headphone', 'dice', 'pringles potato chips', 'game controller']",
             # default_value="['red object']",
