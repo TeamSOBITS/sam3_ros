@@ -1,5 +1,7 @@
 <a name="readme-top"></a>
 
+[EN](README.md) | [JA](README_ja.md)
+
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
@@ -9,43 +11,49 @@
 # SAM3 ROS
 
 <details>
-  <summary>目次</summary>
+  <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#概要">概要</a>
+      <a href="#overview">Overview</a>
     </li>
     <li>
-      <a href="#セットアップ">セットアップ</a>
+      <a href="#setup">Setup</a>
       <ul>
-        <li><a href="#環境条件">環境条件</a></li>
-        <li><a href="#インストール方法">インストール方法</a></li>
-        <li><a href="#SAM 3 ウェイトファイルのダウンロード">SAM 3 ウェイトファイルのダウンロード</a></li>
+        <li><a href="#environment">Environment</a></li>
+        <li><a href="#installation">Installation</a></li>
+        <li><a href="#download-sam-3-weight-file">Download SAM 3 Weight File</a></li>
       </ul>
     </li>
-    <li><a href="#実行操作方法">実行・操作方法</a></li>
-    <li><a href="#パラメーター">パラメーター</a></li>
-    <li><a href="#デモ">デモ</a></li>
-     <!-- <li><a href="#マイルストーン">マイルストーン</a></li> -->
-    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#parameters">Parameters</a></li>
+    <li><a href="#demo">Demo</a></li>
+     <!-- <li><a href="#milestone">Milestone</a></li> -->
+    <li><a href="#references">References</a></li>
   </ol>
 </details>
 
-## 概要
-sam3_ros は，Meta が公開した Segment Anything Model 3 (SAM3) を ROS 2で利用するためのラッパーパッケージです．
+## Overview
+`sam3_ros` is a wrapper package that enables the use of Meta’s Segment Anything Model 3 (SAM3) in ROS 2.
 
-本パッケージでは **テキストプロンプトに基づくクラス指定セグメンテーション** を行い，以下の機能がROS2環境で実現できます．
+This package performs **promptable segmentation using text prompts**, providing the following features in a ROS 2 environment.
 
-- テキスト指示による物体セグメンテーション
-- マルチクラス・マルチインスタンス対応
-- バウンディングボックス (Detection2D)
-- セグメンテーションマスク付き検出 (Detection2DWithMask)
-- 可視化済み画像出力
+**Main Features:**
+- Object segmentation via text instructions  
+- Multi-class and multi-instance support  
+- Bounding box output (Detection2D)  
+- Detection with segmentation masks (Detection2DWithMask)  
+- Visualization image output 
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-## セットアップ
-本レポジトリのセットアップ方法について説明します．
+## Setup
+This section explains how to set up this repository.
 
-### 環境条件
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+### Environment
 
 | System  | Version |
 | ------------- | ------------- |
@@ -53,113 +61,122 @@ sam3_ros は，Meta が公開した Segment Anything Model 3 (SAM3) を ROS 2で
 | ROS | Humble Hawksbill |
 | Python | 3.0~ |
 
-### インストール方法
-1. ROS2の`src`フォルダに移動します．
+### Installation
+1. Move to your ROS 2 `src` directory.
    ```sh
    cd　~/colcon_ws/src/
    ```
-2. 本レポジトリをcloneします．
+2. Clone this repository.
    ```sh
    git clone -b humble-devel https://github.com/TeamSOBITS/sam3_ros.git
    ```
-3. レポジトリの中へ移動します．
+3. Navigate to this repository.
    ```sh
    cd sam3_ros
    ```
-4. 依存パッケージをインストールします．
+4. Install dependencies.
     ```sh
     bash install.sh
     ```
-5. パッケージをコンパイルします．
+5. Build the package.
    ```sh
    cd ~/colcon_ws/
    colcon build --symlink-install
    ```
 
-### SAM 3 ウェイトファイルのダウンロード
-SAM 3 の重みファイル（`sam3.pt`）はライセンスの都合上，自動ダウンロードされません．  
-そのため，**事前に手動でダウンロードする必要があります**．
-
-1. Hugging Face 上の [**SAM 3 モデルページ**](https://huggingface.co/facebook/sam3) にアクセスし，
-   モデルの重みファイルへのアクセスをリクエストしてください．
-
-2. 承認後，[`sam3.pt`](https://huggingface.co/facebook/sam3/resolve/main/sam3.pt?download=true) をダウンロードします．
-
-3. ダウンロードした `sam3.pt` ファイルを以下のディレクトリに配置してください．  
-   - ウェイトディレクトリ（[`sam3_ros/weights`](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights)）  
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-<!-- 実行・操作方法 -->
-## 実行・操作方法
-1. カメラを起動し，[sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py)の**image_topic_name**を使用するカメラのトピック名に書き換える．
+### Download SAM 3 Weight File
+Due to licensing restrictions, the SAM 3 weight file (`sam3.pt`) is not downloaded automatically.
+Therefore, you must **download it manually** in advance.
+
+1. Visit the [**SAM 3 model page**](https://huggingface.co/facebook/sam3) on Hugging Face and request access to the model weights.
+
+2. After approval, download [`sam3.pt`](https://huggingface.co/facebook/sam3/resolve/main/sam3.pt?download=true).
+
+3. Place the downloaded `sam3.pt` file into the directory below.
+   - Weight directory: （[`sam3_ros/weights`](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights)）
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+## Usage
+1. Launch your camera and modify **image_topic_name** in [sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py) to match your camera topic.
    
-   例
+   Example:
    ```sh
-   default_value="/camera/color/image_raw"          # orbbec_series
+   default_value="/camera/color/image_raw"              # orbbec_series
    ```
-2. RGBDカメラを使用する場合は，[sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py)の**point_cloud_topic**も使用するカメラの点群のトピック名に書き換える．
-   
-   例
+2. If using an RGB-D camera, also modify **point_cloud_topic** in [sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py).
+   Example:
    ```sh
    default_value="/camera/depth_registered/points"     # orbbec_series
    ```
-3. ウェイトファイルを設定\
-    用意したウェイトファイルを[weightsディレクトリ](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights)に入れる．
-4. [sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py)の**weight_file**を，手順3で設定したウェイトファイル名に書き換える．
+3. Place your prepared weight file into the [weights directory](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights).
+4. Update **weight_file** in [sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py)
    ```sh
    default_value=os.path.join(get_package_share_directory("sam3_ros"), "weights", "sam3.pt")
    ```
-5. colcon buildを実行
+5. Rebuild the package.
    ```sh
    cd ~/colcon_ws/
    colcon build --symlink-install
    ```
-6. SAM 3 を起動
+6. Launch SAM 3.
     ```sh
     ros2 launch sam3_ros sam3.launch.py
     ```
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-## パラメーター
-以下は[sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py)で設定できるパラメーターである．
+## Parameters
+The following parameters can be configured in [sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py).
 
-| パラメーター名  | 説明 | デフォルト値 |
-| ------------- | ------------- | ------------- |
-| weight_file               | SAM3 の重みファイル | sam3.pt |
-| prompt_text               | セグメンテーション対象クラス（文字列配列） | ["object"] |
-| threshold                 | マスク生成の信頼度閾値 | 0.75 |
-| half                      | FP16 推論を有効にするか | True |
-| image_show                | 推論時に Ultralytics 側の表示を有効化 | False |
-| execute_default           | 起動時に推論を有効にするか | True |
-| use_3d                    | 3D検出を有効にするか | False |
-| cluster_tolerance         | どの程度離れた点群までは同一の物体とみなすかのしきい値．BoundingBox内に点群を飛ばした場合に，対象物に点群があたり，しきい値いないにある点群を1物体とみなしクラス分けを行います． そのため，あまり大きくすると点群1つ1つの探索範囲が広がり処理が遅くなってしまいます． | 0.01 |
-| min_clusterSize           | どの程度の数以下の点群の集まりは対象物の点群から棄却するかのしきい値．点群をクラス分けした際に，この数以下の点群数だったらノイズとみなし棄却します． | 100 |
-| max_clusterSize           | どの程度の数以上の点群の集まりは対象物の点群から棄却するかのしきい値．点群をクラス分けした際に，この数以上の点群数だったら全く別の対象物(物体だったら床の点群など)を捉えてしまったとみなし棄却します． | 20000 |
-| noise_point_cloud_range   | 対象の物体の点群からノイズ面を除去し，中心座標に近づけるため除去量．クラス分けした点群から物体を抽出した後，床や背後の壁，左右の壁などx,y,z方向に点群をこの値分，更にカットします． こうすることで，より物体の部分のみにかかる点群に絞ることができます． しかし値を大きくしすぎると，物体分の点群まで多く削いでしまうため注意が必用です． | 0.01 |
-| fast_shot                 | fast_shotを有効にするかどうか | true |
-| enable_id                 | 検出した物体のラベルの後ろにIDをつけるかどうか(例: apple_01) | false |
+
+| Parameter               | Description                                                                                                                     | Default    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| weight_file             | SAM3 weight file                                                                                                                | sam3.pt    |
+| prompt_text             | Target segmentation classes (string array)                                                                                      | ["object"] |
+| threshold               | Mask confidence threshold                                                                                                       | 0.75       |
+| half                    | Enable FP16 inference                                                                                                           | True       |
+| image_show              | Enable Ultralytics visualization                                                                                                | False      |
+| execute_default         | Enable inference on startup                                                                                                     | True       |
+| use_3d                  | Enable 3D detection                                                                                                             | False      |
+| cluster_tolerance       | Distance threshold for grouping point clouds into a single object. Larger values increase search range and slow processing.     | 0.01       |
+| min_clusterSize         | Minimum number of points to be considered a valid object (smaller clusters are treated as noise).                               | 100        |
+| max_clusterSize         | Maximum number of points allowed for one object (larger clusters are rejected as background, e.g., floor).                      | 20000      |
+| noise_point_cloud_range | Amount of point cloud trimming in x/y/z to remove background surfaces (floor/walls). Excessive values may remove object points. | 0.01       |
+| fast_shot               | Enable fast_shot                                                                                                                | true       |
+| enable_id               | Append IDs to detected labels (e.g., apple_01)                                                                                  | false      |
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 ### Publications
-| Topic名                                  | 型                        | 説明            |
-| --------------------------------------- | ------------------------ | ------------- |
-| `/sam3_ros/object_boxes`                | Detection2DArray         | バウンディングボックスのみ |
-| `/sam3_ros/object_detections_with_mask` | Detection2DWithMaskArray | マスク付き検出結果     |
-| `/sam3_ros/segmented_image`             | sensor_msgs/Image        | 可視化画像         |
+
+| Topic                                   | Type                     | Description                  |
+| --------------------------------------- | ------------------------ | ---------------------------- |
+| `/sam3_ros/object_boxes`                | Detection2DArray         | Bounding boxes only          |
+| `/sam3_ros/object_detections_with_mask` | Detection2DWithMaskArray | Detection results with masks |
+| `/sam3_ros/segmented_image`             | sensor_msgs/Image        | Visualization image          |
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-## デモ
-| 物体検出 | 物体認識 | インスタンスセグメンテーション |
+## Demo
+| Object Detection | Object Recognition | Instance Segmentation |
 |:---:|:---:|:---:|
 | ![](docs/sam3_object_raw.png) | ![](docs/sam3_multiclass_raw.png) | ![](docs/sam3_instant_raw.png) |
 | ![](docs/sam3_object_result.png) | ![](docs/sam3_multiclass_result.png) | ![](docs/sam3_instant_result.png) |
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-## 参考文献
+## References
 * [SAM 3: Segment Anything with Concepts](https://github.com/facebookresearch/sam3)
-* [ Ultralytics ドキュメント](https://docs.ultralytics.com/ja/models/sam-3/)
+* [ Ultralytics Documentation](https://docs.ultralytics.com/models/sam-3/)
 
 [contributors-shield]: https://img.shields.io/github/contributors/TeamSOBITS/sam3_ros.svg?style=for-the-badge
 [contributors-url]: https://github.com/TeamSOBITS/sam3_ros/graphs/contributors
