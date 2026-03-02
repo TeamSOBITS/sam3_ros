@@ -82,7 +82,8 @@ sam3_ros は，Meta が公開した Segment Anything Model 3 (SAM3) を ROS 2で
    cd ~/colcon_ws/
    colcon build --symlink-install
    ```
-
+> [!NOTE]
+> 2026年3月2日時点において本パッケージを使用するにはsobits_interfaceのブランチをfeature/segmentationへ変更する必要があります. 現在はmainにmargeされている可能性もあるため確認してください.
 <p align="right">(<a href="#readme-top">上に戻る</a>)</p>
 
 
