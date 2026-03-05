@@ -20,6 +20,9 @@ def generate_launch_description():
     threshold = LaunchConfiguration("threshold")
     prompt_text = LaunchConfiguration("prompt_text")
     half = LaunchConfiguration("half")
+    publish_mask = LaunchConfiguration("publish_mask")
+    publish_mask_pixels = LaunchConfiguration("publish_mask_pixels")
+    publish_mask_image = LaunchConfiguration("publish_mask_image")
     namespace = LaunchConfiguration("namespace")
     base_frame_name = LaunchConfiguration("base_frame_name")
     use_3d = LaunchConfiguration("use_3d")
@@ -96,6 +99,21 @@ def generate_launch_description():
             description="Use FP16 inference",
         ),
         DeclareLaunchArgument(
+            "publish_mask",
+            default_value="False",
+            description="Publish object_masks topic (DetectMaskArray)",
+        ),
+        DeclareLaunchArgument(
+            "publish_mask_pixels",
+            default_value="False",
+            description="Publish mask coordinates (pixel_x/pixel_y)",
+        ),
+        DeclareLaunchArgument(
+            "publish_mask_image",
+            default_value="False",
+            description="Publish mask image field in DetectMask",
+        ),
+        DeclareLaunchArgument(
             "namespace",
             default_value="sam3_ros",
             description="Namespace for the nodes",
@@ -107,7 +125,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "use_3d",
-            default_value="False",
+            default_value="True",
             description="Whether to activate 3D detections",
         ),
     ]
@@ -126,6 +144,9 @@ def generate_launch_description():
                 "half": half,
                 "image_show": image_show,
                 "prompt_text": prompt_text,
+                "publish_mask": publish_mask,
+                "publish_mask_pixels": publish_mask_pixels,
+                "publish_mask_image": publish_mask_image,
             },
         ],
         output="screen"

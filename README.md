@@ -127,6 +127,15 @@ Therefore, you must **download it manually** in advance.
     ```sh
     ros2 launch sam3_ros sam3.launch.py
     ```
+7. Update prompt during runtime (without relaunch).
+    ```sh
+    # Single class
+    ros2 topic pub --once /sam3_ros/set_prompt_text std_msgs/msg/String "{data: 'bottle'}"
+
+    # Multiple classes (comma separated or list string)
+    ros2 topic pub --once /sam3_ros/set_prompt_text std_msgs/msg/String "{data: 'bottle,cup,person'}"
+    # ros2 topic pub --once /sam3_ros/set_prompt_text std_msgs/msg/String "{data: \"['bottle','cup','person']\"}"
+    ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -159,7 +168,7 @@ The following parameters can be configured in [sam3.launch.py](https://github.co
 | Topic                                   | Type                     | Description                  |
 | --------------------------------------- | ------------------------ | ---------------------------- |
 | `/sam3_ros/object_boxes`                | Detection2DArray         | Bounding boxes only          |
-| `/sam3_ros/object_detections_with_mask` | Detection2DWithMaskArray | Detection results with masks |
+| `/sam3_ros/object_masks`                | DetectMaskArray          | Instance mask results        |
 | `/sam3_ros/segmented_image`             | sensor_msgs/Image        | Visualization image          |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
