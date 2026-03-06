@@ -19,6 +19,7 @@ def generate_launch_description():
     image_show = LaunchConfiguration("image_show")
     threshold = LaunchConfiguration("threshold")
     prompt_text = LaunchConfiguration("prompt_text")
+    inference_hz = LaunchConfiguration("inference_hz")
     half = LaunchConfiguration("half")
     publish_mask = LaunchConfiguration("publish_mask")
     publish_mask_pixels = LaunchConfiguration("publish_mask_pixels")
@@ -94,9 +95,14 @@ def generate_launch_description():
             description="Text prompt list for SAM3",
         ),
         DeclareLaunchArgument(
+            "inference_hz",
+            default_value="12.0",
+            description="SAM3 inference rate in Hz (process latest frame by timer)",
+        ),
+        DeclareLaunchArgument(
             "half",
-            default_value="True",
-            description="Use FP16 inference",
+            default_value="False",
+            description="Use FP16 inference (only enable if CUDA is available)",
         ),
         DeclareLaunchArgument(
             "publish_mask",
@@ -144,6 +150,7 @@ def generate_launch_description():
                 "half": half,
                 "image_show": image_show,
                 "prompt_text": prompt_text,
+                "inference_hz": inference_hz,
                 "publish_mask": publish_mask,
                 "publish_mask_pixels": publish_mask_pixels,
                 "publish_mask_image": publish_mask_image,

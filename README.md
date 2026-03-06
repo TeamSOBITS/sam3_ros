@@ -148,6 +148,7 @@ The following parameters can be configured in [sam3.launch.py](https://github.co
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | weight_file             | SAM3 weight file                                                                                                                | sam3.pt    |
 | prompt_text             | Target segmentation classes (string array)                                                                                      | ["object"] |
+| inference_hz            | Inference execution rate (Hz). SAM3 processes the latest image at this rate.                                                   | 5.0        |
 | threshold               | Mask confidence threshold                                                                                                       | 0.75       |
 | half                    | Enable FP16 inference                                                                                                           | True       |
 | image_show              | Enable Ultralytics visualization                                                                                                | False      |

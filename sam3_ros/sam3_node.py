@@ -1,4 +1,5 @@
 import ast
+import os
 import cv2
 import numpy as np
 from cv_bridge import CvBridge
@@ -6,9 +7,9 @@ from cv_bridge import CvBridge
 import rclpy
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSDurabilityPolicy, QoSReliabilityPolicy
 from rclpy.lifecycle import LifecycleNode, TransitionCallbackReturn, LifecycleState
+from rcl_interfaces.msg import SetParametersResult
 
 from sensor_msgs.msg import Image
-from std_msgs.msg import String
 from vision_msgs.msg import Detection2DArray, Detection2D, ObjectHypothesisWithPose
 from sobits_interfaces.msg import DetectMask, DetectMaskArray
 from geometry_msgs.msg import Point, Quaternion
@@ -24,17 +25,18 @@ class Sam3Node(LifecycleNode):
 
         self.declare_parameter("weight_file", "sam3.pt")
         self.declare_parameter("threshold", 0.75)
-        self.declare_parameter("half", True)                        # Use FP16 for faster inference
+        self.declare_parameter("half", True)
         self.declare_parameter("image_topic_name", "image_raw")
         self.declare_parameter("prompt_text", ["object"])
         self.declare_parameter("execute_default", True)
         self.declare_parameter("image_show", False)
+        self.declare_parameter("inference_hz", 5.0)
         self.declare_parameter("publish_mask", True)
         self.declare_parameter("publish_mask_pixels", True)
         self.declare_parameter("publish_mask_image", True)
 
     def on_configure(self, state: LifecycleState) -> TransitionCallbackReturn:
-    
+
         self.weight_file = self.get_parameter("weight_file").value
         self.threshold = self.get_parameter("threshold").value
         self.half = self.get_parameter("half").value
@@ -44,6 +46,7 @@ class Sam3Node(LifecycleNode):
         )
         self.enable = self.get_parameter("execute_default").value
         self.image_show = self.get_parameter("image_show").value
+        self.inference_hz = max(float(self.get_parameter("inference_hz").value), 0.1)
         self.publish_mask = self.get_parameter("publish_mask").value
         self.publish_mask_pixels = self.get_parameter("publish_mask_pixels").value
         self.publish_mask_image = self.get_parameter("publish_mask_image").value
@@ -65,7 +68,13 @@ class Sam3Node(LifecycleNode):
         )
 
         self.bridge = CvBridge()
+        self.latest_msg = None
+        self.latest_stamp = None
+        self.last_processed_stamp = None
+        self.is_processing = False
+        self.model_error_reported = False
         self.last_stamp = None
+        self._param_cb = self.add_on_set_parameters_callback(self.on_parameter_update)
 
         super().on_configure(state)
         return TransitionCallbackReturn.SUCCESS
@@ -86,8 +95,9 @@ class Sam3Node(LifecycleNode):
         self.sub = self.create_subscription(
             Image, self.image_topic, self.image_cb, self.image_qos_profile
         )
-        self.prompt_sub = self.create_subscription(
-            String, "set_prompt_text", self.prompt_update_cb, 10
+        self.inference_timer = self.create_timer(
+            1.0 / self.inference_hz,
+            self.inference_timer_cb,
         )
         self.srv = self.create_service(SetBool, "run_ctrl", self.enable_cb)
 
@@ -98,7 +108,7 @@ class Sam3Node(LifecycleNode):
         del self.predictor
         self.predictor = None
         self.destroy_subscription(self.sub)
-        self.destroy_subscription(self.prompt_sub)
+        self.destroy_timer(self.inference_timer)
         self.destroy_service(self.srv)
         super().on_deactivate(state)
         return TransitionCallbackReturn.SUCCESS
@@ -107,16 +117,75 @@ class Sam3Node(LifecycleNode):
         self.enable = request.data
         response.success = True
         return response
-    
-    def prompt_update_cb(self, msg: String) -> None:
-        new_prompt = self.parse_prompt_text(msg.data)
-        self.prompt_text = new_prompt
-        self.get_logger().info(f"Updated prompt_text: {self.prompt_text}")
+
+    def on_parameter_update(self, params) -> SetParametersResult:
+        try:
+            for param in params:
+                if param.name == "prompt_text":
+                    self.prompt_text = self.parse_prompt_text(param.value)
+                    self.get_logger().info(f"Updated prompt_text: {self.prompt_text}")
+                elif param.name == "inference_hz":
+                    self.inference_hz = max(float(param.value), 0.1)
+                    if hasattr(self, "inference_timer") and self.inference_timer is not None:
+                        self.destroy_timer(self.inference_timer)
+                        self.inference_timer = self.create_timer(
+                            1.0 / self.inference_hz,
+                            self.inference_timer_cb,
+                        )
+                    self.get_logger().info(f"Updated inference_hz: {self.inference_hz}")
+                elif param.name == "execute_default":
+                    self.enable = bool(param.value)
+                    self.get_logger().info(f"Updated execute_default: {self.enable}")
+                elif param.name == "publish_mask":
+                    self.publish_mask = bool(param.value)
+                    self.get_logger().info(f"Updated publish_mask: {self.publish_mask}")
+                elif param.name == "publish_mask_pixels":
+                    self.publish_mask_pixels = bool(param.value)
+                    self.get_logger().info(f"Updated publish_mask_pixels: {self.publish_mask_pixels}")
+                elif param.name == "publish_mask_image":
+                    self.publish_mask_image = bool(param.value)
+                    self.get_logger().info(f"Updated publish_mask_image: {self.publish_mask_image}")
+        except Exception as e:
+            return SetParametersResult(successful=False, reason=str(e))
+
+        return SetParametersResult(successful=True)
 
     def image_cb(self, msg: Image) -> None:
+        self.latest_msg = msg
+        self.latest_stamp = msg.header.stamp
 
+    def inference_timer_cb(self) -> None:
         if not self.enable:
             return
+        if not os.path.exists(self.weight_file):
+            if not self.model_error_reported:
+                self.get_logger().error(
+                    f"SAM3 weight file not found: {self.weight_file}. "
+                    "Inference is disabled until a valid weight_file is set."
+                )
+                self.model_error_reported = True
+            self.enable = False
+            return
+        if self.latest_msg is None:
+            return
+        if self.latest_stamp == self.last_processed_stamp:
+            return
+        if self.is_processing:
+            return
+
+        self.is_processing = True
+        msg = self.latest_msg
+        stamp = self.latest_stamp
+        try:
+            self.process_image(msg)
+        except Exception as e:
+            self.get_logger().error(f"SAM3 inference failed: {e}")
+            self.enable = False
+        finally:
+            self.last_processed_stamp = stamp
+            self.is_processing = False
+
+    def process_image(self, msg: Image) -> None:
 
         encoding = msg.encoding
         cv_image = self.bridge.imgmsg_to_cv2(msg)
@@ -186,10 +255,6 @@ class Sam3Node(LifecycleNode):
                     mask_msg.results.append(ohwp_mask)
                     mask_array.masks.append(mask_msg)
 
-
-                # -----------------------------
-                # Detection2D (no mask)
-                # -----------------------------
                 det2d = Detection2D()
                 det2d.header = msg.header
                 det2d.id = f"{class_name}_{instance_id}"
@@ -212,23 +277,16 @@ class Sam3Node(LifecycleNode):
 
                 det_boxes.detections.append(det2d)
 
-
-                # -----------------------------
-                # Visualization
-                # -----------------------------
-                # Overlay mask on image
                 overlay[mask_np] = (
                     0.6 * overlay[mask_np] + 0.4 * np.array(color)
                 ).astype(np.uint8)
 
-                # Draw bounding box
                 x1 = int(x)
                 y1 = int(y)
                 x2 = int(x + w)
                 y2 = int(y + h)
                 cv2.rectangle(overlay, (x1, y1), (x2, y2), color, 2)
 
-                # Draw label
                 label = f"{class_name} #{instance_id}"
                 cv2.putText(
                     overlay,
@@ -281,6 +339,7 @@ class Sam3Node(LifecycleNode):
         """Deterministic color from class name"""
         rng = abs(hash(name)) % (256**3)
         return ((rng >> 16) & 255, (rng >> 8) & 255, rng & 255)
+
 
 def main(args=None):
     rclpy.init(args=args)
