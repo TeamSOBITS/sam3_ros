@@ -10,10 +10,6 @@ from launch.conditions import IfCondition
 
 def generate_launch_description():
     image_topic_name = LaunchConfiguration("image_topic_name")
-    point_cloud_topic = LaunchConfiguration("point_cloud_topic")
-    depth_image_topic_name = LaunchConfiguration("depth_image_topic_name")
-    info_topic_name = LaunchConfiguration("info_topic_name")
-    positioning_detection_mode_object = LaunchConfiguration("positioning_detection_mode_object")
     weight_file = LaunchConfiguration("weight_file")
     execute_default = LaunchConfiguration("execute_default")
     image_show = LaunchConfiguration("image_show")
@@ -25,41 +21,16 @@ def generate_launch_description():
     publish_mask_pixels = LaunchConfiguration("publish_mask_pixels")
     publish_mask_image = LaunchConfiguration("publish_mask_image")
     namespace = LaunchConfiguration("namespace")
-    base_frame_name = LaunchConfiguration("base_frame_name")
     use_3d = LaunchConfiguration("use_3d")
 
     launch_args = [
         DeclareLaunchArgument(
             "image_topic_name",
             description="ROS Topic Name of sensor_msgs/msg/Image message. (sensor_msgs/msg/Image)",
-            default_value="/camera/color/image_raw",                ## realsense
-            # default_value="/rgb/image_raw",                       ## azure_kinect
-            # default_value="/camera/color/image_raw",              ## orbbec_series
-            # default_value="/camera/rgb/image_raw",                ## xtion
-        ),
-        DeclareLaunchArgument(
-            "point_cloud_topic",
-            description="Detection 3D Pose from 2D Pose (sensor_msgs/msg/PointCloud2). if you select the 'point_cloud' in 'positioning_detection_mode'.",
-            default_value="/camera/depth/color/points",             ## realsense
-            # default_value="/points2",                             ## azure_kinect
-            # default_value="/camera/depth_registered/points",      ## orbbec_series
-            # default_value="/camera/depth_registered/points",      ## xtion
-        ),
-        DeclareLaunchArgument(
-            "depth_image_topic_name",
-            description="Detection 3D Pose from 2D Pose (sensor_msgs/msg/Image). if you select the 'depth_image' in 'positioning_detection_mode'.",
-            default_value="/camera/depth/image_rect_raw",           ## realsense
-            # default_value="/depth_to_rgb/image_raw",              ## azure_kinect
-            # default_value="",                                     ## orbbec_series
-            # default_value="/camera/depth/image_raw",              ## xtion
-        ),
-        DeclareLaunchArgument(
-            "info_topic_name",
-            description="Setup the camera info topic name. (sensor_msgs/msg/CameraInfo)",
-            default_value="/camera/color/camera_info",              ## realsense
-            # default_value="/rgb/camera_info",                     ## azure_kinect
-            # default_value="",                                     ## orbbec_series
-            # default_value="/camera/rgb/camera_info",              ## xtion
+            default_value="camera/color/image_raw",                ## realsense
+            # default_value="rgb/image_raw",                       ## azure_kinect
+            # default_value="camera/color/image_raw",              ## orbbec_series
+            # default_value="camera/rgb/image_raw",                ## xtion
         ),
         DeclareLaunchArgument(
             "positioning_detection_mode_object",
@@ -121,13 +92,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "namespace",
-            default_value="sam3_ros",
+            default_value="",
             description="Namespace for the nodes",
-        ),
-        DeclareLaunchArgument(
-            "base_frame_name",
-            default_value="base_footprint",
-            description="Base frame name for TF and 3D detection",
         ),
         DeclareLaunchArgument(
             "use_3d",
@@ -139,7 +105,7 @@ def generate_launch_description():
     sam3_node_cmd = Node(
         package="sam3_ros",
         executable="sam3_node",
-        name="sam3_node",
+        name="sam3_ros",
         namespace=namespace,
         parameters=[
             {
@@ -169,18 +135,10 @@ def generate_launch_description():
         ),
         launch_arguments={
             "namespace": namespace,
-            "base_frame_name": base_frame_name,
-            "bbox_topic_name": "/sam3_ros/object_boxes",
-            "cloud_topic_name": point_cloud_topic,
-            "depth_image_topic_name": depth_image_topic_name,
-            "info_topic_name": info_topic_name,
-            "execute_default": execute_default,
-            "cluster_tolerance": "0.01",
-            "min_clusterSize": "200",
-            "max_clusterSize": "20000",
-            "noise_point_cloud_range": "0.03",
-            "enable_id": "False",
-            "positioning_detection_mode": positioning_detection_mode_object,
+            "params_file": os.path.join(
+                get_package_share_directory("image_to_position"), "config",
+                "bbox_to_3d.yaml"
+            ),
         }.items(),
         condition=IfCondition(use_3d),
     )
