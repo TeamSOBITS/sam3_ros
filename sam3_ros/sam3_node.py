@@ -51,6 +51,18 @@ class Sam3Node(LifecycleNode):
         self.publish_mask_pixels = self.get_parameter("publish_mask_pixels").value
         self.publish_mask_image = self.get_parameter("publish_mask_image").value
 
+        self.get_logger().info(f"Weight file: {self.weight_file}")
+        self.get_logger().info(f"Threshold: {self.threshold}")
+        self.get_logger().info(f"Half precision: {self.half}")
+        self.get_logger().info(f"Image topic: {self.image_topic}")
+        self.get_logger().info(f"Prompt text: {self.prompt_text}")
+        self.get_logger().info(f"Execute default: {self.enable}")
+        self.get_logger().info(f"Image show: {self.image_show}")
+        self.get_logger().info(f"Inference Hz: {self.inference_hz}")
+        self.get_logger().info(f"Publish mask: {self.publish_mask}")
+        self.get_logger().info(f"Publish mask pixels: {self.publish_mask_pixels}")
+        self.get_logger().info(f"Publish mask image: {self.publish_mask_image}")
+
         self.image_qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
             history=QoSHistoryPolicy.KEEP_LAST,
@@ -58,13 +70,13 @@ class Sam3Node(LifecycleNode):
             depth=1,
         )
         self.pub_det = self.create_lifecycle_publisher(
-            Detection2DArray, "object_boxes", 1
+            Detection2DArray, self.get_name() + "/object_boxes", 1
         )
         self.pub_mask = self.create_lifecycle_publisher(
-            DetectMaskArray, "object_masks", 1
+            DetectMaskArray, self.get_name() + "/object_masks", 1
         )
         self.pub_img = self.create_lifecycle_publisher(
-            Image, "segmented_image", 1
+            Image, self.get_name() + "/detected_image", 1
         )
 
         self.bridge = CvBridge()
@@ -89,6 +101,7 @@ class Sam3Node(LifecycleNode):
             half=self.half,
             save=False,
             show=self.image_show,
+            verbose=False,
         )
         self.predictor = SAM3SemanticPredictor(overrides=overrides)
 
