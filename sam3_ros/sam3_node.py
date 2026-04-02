@@ -339,8 +339,6 @@ class Sam3Node(LifecycleNode):
 def main(args=None):
     rclpy.init(args=args)
     node = Sam3Node()
-    node.trigger_configure()
-    node.trigger_activate()
 
     node.get_logger().info("SAM3 Node started. Spinning...")
 
