@@ -13,7 +13,6 @@ from sensor_msgs.msg import Image
 from vision_msgs.msg import Detection2DArray, Detection2D, ObjectHypothesisWithPose
 from sobits_interfaces.msg import DetectMask, DetectMaskArray
 from geometry_msgs.msg import Point, Quaternion
-from std_srvs.srv import SetBool
 
 from ultralytics.models.sam import SAM3SemanticPredictor
 
@@ -28,7 +27,6 @@ class Sam3Node(LifecycleNode):
         self.declare_parameter("half", True)
         self.declare_parameter("image_topic_name", "image_raw")
         self.declare_parameter("prompt_text", ["object"])
-        self.declare_parameter("execute_default", True)
         self.declare_parameter("image_show", False)
         self.declare_parameter("inference_hz", 5.0)
         self.declare_parameter("publish_mask", True)
@@ -44,12 +42,22 @@ class Sam3Node(LifecycleNode):
         self.prompt_text = self.parse_prompt_text(
             self.get_parameter("prompt_text").value
         )
-        self.enable = self.get_parameter("execute_default").value
         self.image_show = self.get_parameter("image_show").value
         self.inference_hz = max(float(self.get_parameter("inference_hz").value), 0.1)
         self.publish_mask = self.get_parameter("publish_mask").value
         self.publish_mask_pixels = self.get_parameter("publish_mask_pixels").value
         self.publish_mask_image = self.get_parameter("publish_mask_image").value
+
+        self.get_logger().info(f"Weight file: {self.weight_file}")
+        self.get_logger().info(f"Threshold: {self.threshold}")
+        self.get_logger().info(f"Half precision: {self.half}")
+        self.get_logger().info(f"Image topic: {self.image_topic}")
+        self.get_logger().info(f"Prompt text: {self.prompt_text}")
+        self.get_logger().info(f"Image show: {self.image_show}")
+        self.get_logger().info(f"Inference Hz: {self.inference_hz}")
+        self.get_logger().info(f"Publish mask: {self.publish_mask}")
+        self.get_logger().info(f"Publish mask pixels: {self.publish_mask_pixels}")
+        self.get_logger().info(f"Publish mask image: {self.publish_mask_image}")
 
         self.image_qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
@@ -58,13 +66,13 @@ class Sam3Node(LifecycleNode):
             depth=1,
         )
         self.pub_det = self.create_lifecycle_publisher(
-            Detection2DArray, "object_boxes", 1
+            Detection2DArray, self.get_name() + "/object_boxes", 1
         )
         self.pub_mask = self.create_lifecycle_publisher(
-            DetectMaskArray, "object_masks", 1
+            DetectMaskArray, self.get_name() + "/object_masks", 1
         )
         self.pub_img = self.create_lifecycle_publisher(
-            Image, "segmented_image", 1
+            Image, self.get_name() + "/detected_image", 1
         )
 
         self.bridge = CvBridge()
@@ -89,6 +97,7 @@ class Sam3Node(LifecycleNode):
             half=self.half,
             save=False,
             show=self.image_show,
+            verbose=False,
         )
         self.predictor = SAM3SemanticPredictor(overrides=overrides)
 
@@ -99,7 +108,6 @@ class Sam3Node(LifecycleNode):
             1.0 / self.inference_hz,
             self.inference_timer_cb,
         )
-        self.srv = self.create_service(SetBool, "run_ctrl", self.enable_cb)
 
         super().on_activate(state)
         return TransitionCallbackReturn.SUCCESS
@@ -109,14 +117,8 @@ class Sam3Node(LifecycleNode):
         self.predictor = None
         self.destroy_subscription(self.sub)
         self.destroy_timer(self.inference_timer)
-        self.destroy_service(self.srv)
         super().on_deactivate(state)
         return TransitionCallbackReturn.SUCCESS
-
-    def enable_cb(self, request: SetBool.Request, response: SetBool.Response) -> SetBool.Response:
-        self.enable = request.data
-        response.success = True
-        return response
 
     def on_parameter_update(self, params) -> SetParametersResult:
         try:
@@ -133,9 +135,6 @@ class Sam3Node(LifecycleNode):
                             self.inference_timer_cb,
                         )
                     self.get_logger().info(f"Updated inference_hz: {self.inference_hz}")
-                elif param.name == "execute_default":
-                    self.enable = bool(param.value)
-                    self.get_logger().info(f"Updated execute_default: {self.enable}")
                 elif param.name == "publish_mask":
                     self.publish_mask = bool(param.value)
                     self.get_logger().info(f"Updated publish_mask: {self.publish_mask}")
@@ -155,8 +154,6 @@ class Sam3Node(LifecycleNode):
         self.latest_stamp = msg.header.stamp
 
     def inference_timer_cb(self) -> None:
-        if not self.enable:
-            return
         if not os.path.exists(self.weight_file):
             if not self.model_error_reported:
                 self.get_logger().error(
@@ -164,7 +161,6 @@ class Sam3Node(LifecycleNode):
                     "Inference is disabled until a valid weight_file is set."
                 )
                 self.model_error_reported = True
-            self.enable = False
             return
         if self.latest_msg is None:
             return
@@ -180,7 +176,6 @@ class Sam3Node(LifecycleNode):
             self.process_image(msg)
         except Exception as e:
             self.get_logger().error(f"SAM3 inference failed: {e}")
-            self.enable = False
         finally:
             self.last_processed_stamp = stamp
             self.is_processing = False
@@ -344,8 +339,6 @@ class Sam3Node(LifecycleNode):
 def main(args=None):
     rclpy.init(args=args)
     node = Sam3Node()
-    node.trigger_configure()
-    node.trigger_activate()
 
     node.get_logger().info("SAM3 Node started. Spinning...")
 
