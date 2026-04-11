@@ -88,15 +88,17 @@ This section explains how to set up this repository.
 
 
 ### Download SAM 3 Weight File
-Due to licensing restrictions, the SAM 3 weight file (`sam3.pt`) is not downloaded automatically.
-Therefore, you must **download it manually** in advance.
+Two versions of checkpoints are available: `sam3.pt` for SAM 3 and `sam3.1_multiplex.pt` for SAM 3.1.
 
-1. Visit the [**SAM 3 model page**](https://huggingface.co/facebook/sam3) on Hugging Face and request access to the model weights.
+SAM 3 weight files are not downloaded automatically due to licensing restrictions.  
+Please **download the checkpoint you want to use manually in advance**.
 
-2. After approval, download [`sam3.pt`](https://huggingface.co/facebook/sam3/resolve/main/sam3.pt?download=true).
+1. Visit the [**SAM 3 model page**](https://huggingface.co/facebook/sam3) or the [**SAM 3.1 model page**](https://huggingface.co/facebook/sam3.1) on Hugging Face, and request access to the model weights.
 
-3. Place the downloaded `sam3.pt` file into the directory below.
-   - Weight directory: （[`sam3_ros/weights`](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights)）
+2. After approval, download [`sam3.pt`](https://huggingface.co/facebook/sam3/resolve/main/sam3.pt?download=true) or [`sam3.1_multiplex.pt`](https://huggingface.co/facebook/sam3.1/resolve/main/sam3.1_multiplex.pt?download=true).
+
+3. Place the downloaded checkpoint (`sam3.pt` or `sam3.1_multiplex.pt`) in the directory below.
+   - Weight directory: [`sam3_ros/weights`](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -116,7 +118,7 @@ Therefore, you must **download it manually** in advance.
 3. Place your prepared weight file into the [weights directory](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights).
 4. Update **weight_file** in [sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py)
    ```sh
-   default_value=os.path.join(get_package_share_directory("sam3_ros"), "weights", "sam3.pt")
+   default_value=os.path.join(get_package_share_directory("sam3_ros"), "weights", "sam3.pt")  # or "sam3.1_multiplex.pt"
    ```
 5. Rebuild the package.
    ```sh

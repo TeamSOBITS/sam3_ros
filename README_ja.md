@@ -88,16 +88,18 @@ sam3_ros は，Meta が公開した Segment Anything Model 3 (SAM3) を ROS 2で
 
 
 ### SAM 3 ウェイトファイルのダウンロード
-SAM 3 の重みファイル（`sam3.pt`）はライセンスの都合上，自動ダウンロードされません．  
-そのため，**事前に手動でダウンロードする必要があります**．
+SAM 3 用の `sam3.pt` と SAM 3.1 用の `sam3.1_multiplex.pt` の2種類のチェックポイントを使用できます．
 
-1. Hugging Face 上の [**SAM 3 モデルページ**](https://huggingface.co/facebook/sam3) にアクセスし，
+SAM 3 の重みファイルはライセンスの都合上，自動ではダウンロードされません．  
+使用するチェックポイントを**事前に手動でダウンロードしてください**．
+
+1. Hugging Face 上の [**SAM 3 モデルページ**](https://huggingface.co/facebook/sam3) または [**SAM 3.1 モデルページ**](https://huggingface.co/facebook/sam3.1) にアクセスし，
    モデルの重みファイルへのアクセスをリクエストしてください．
 
-2. 承認後，[`sam3.pt`](https://huggingface.co/facebook/sam3/resolve/main/sam3.pt?download=true) をダウンロードします．
+2. 承認後，[`sam3.pt`](https://huggingface.co/facebook/sam3/resolve/main/sam3.pt?download=true) または [`sam3.1_multiplex.pt`](https://huggingface.co/facebook/sam3.1/resolve/main/sam3.1_multiplex.pt?download=true) をダウンロードします．
 
-3. ダウンロードした `sam3.pt` ファイルを以下のディレクトリに配置してください．  
-   - ウェイトディレクトリ（[`sam3_ros/weights`](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights)）  
+3. ダウンロードしたチェックポイント（`sam3.pt` または `sam3.1_multiplex.pt`）を以下のディレクトリに配置してください．
+   - ウェイトディレクトリ（[`sam3_ros/weights`](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights)）
 
 <p align="right">(<a href="#readme-top">上に戻る</a>)</p>
 
@@ -119,7 +121,7 @@ SAM 3 の重みファイル（`sam3.pt`）はライセンスの都合上，自�
     用意したウェイトファイルを[weightsディレクトリ](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights)に入れる．
 4. [sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py)の**weight_file**を，手順3で設定したウェイトファイル名に書き換える．
    ```sh
-   default_value=os.path.join(get_package_share_directory("sam3_ros"), "weights", "sam3.pt")
+   default_value=os.path.join(get_package_share_directory("sam3_ros"), "weights", "sam3.pt")  # or "sam3.1_multiplex.pt"
    ```
 5. colcon buildを実行
    ```sh

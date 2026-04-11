@@ -39,7 +39,11 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "weight_file",
-            default_value=os.path.join(get_package_share_directory("sam3_ros"), "weights", "sam3.pt"),
+            default_value=os.path.join(
+                get_package_share_directory("sam3_ros"), 
+                "weights", 
+                "sam3.pt" # "sam3.pt" or "sam3.1_multiplex.pt"
+            ),
             description="Weight file path",
         ),
         DeclareLaunchArgument(
