@@ -3,7 +3,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PythonExpression
+from launch.substitutions import LaunchConfiguration, PythonExpression, AndSubstitution
 from launch_ros.actions import Node
 from launch.conditions import IfCondition
 
@@ -21,6 +21,8 @@ def generate_launch_description():
     publish_mask_pixels = LaunchConfiguration("publish_mask_pixels")
     publish_mask_image = LaunchConfiguration("publish_mask_image")
     namespace = LaunchConfiguration("namespace")
+    bbox_to_3d_params_file = LaunchConfiguration("bbox_to_3d_params_file")
+    mask_to_3d_params_file = LaunchConfiguration("mask_to_3d_params_file")
     use_3d = LaunchConfiguration("use_3d")
 
     launch_args = [
@@ -100,6 +102,24 @@ def generate_launch_description():
             description="Namespace for the nodes",
         ),
         DeclareLaunchArgument(
+            "bbox_to_3d_params_file",
+            default_value=os.path.join(
+                get_package_share_directory("image_to_position"),
+                "config",
+                "bbox_to_3d.yaml",
+            ),
+            description="Parameter file path for bbox_to_3d",
+        ),
+        DeclareLaunchArgument(
+            "mask_to_3d_params_file",
+            default_value=os.path.join(
+                get_package_share_directory("image_to_position"),
+                "config",
+                "mask_to_3d.yaml",
+            ),
+            description="Parameter file path for mask_to_3d",
+        ),
+        DeclareLaunchArgument(
             "use_3d",
             default_value="True",
             description="Whether to activate 3D detections",
@@ -163,12 +183,25 @@ def generate_launch_description():
         ),
         launch_arguments={
             "namespace": namespace,
-            "params_file": os.path.join(
-                get_package_share_directory("image_to_position"), "config",
-                "bbox_to_3d.yaml"
-            ),
+            "params_file": bbox_to_3d_params_file,
         }.items(),
         condition=IfCondition(use_3d),
+    )
+
+    mask_to_3d_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("image_to_position"),
+                "launch",
+                "mask_to_3d.launch.py",
+            )
+        ),
+        launch_arguments={
+            "namespace": namespace,
+            "params_file": mask_to_3d_params_file,
+            "execute_default": execute_default,
+        }.items(),
+        condition=IfCondition(AndSubstitution(publish_mask, use_3d)),
     )
 
     return LaunchDescription(
@@ -181,5 +214,6 @@ def generate_launch_description():
                 condition=IfCondition(execute_default),
             ),
             bbox_to_3d_cmd,
+            mask_to_3d_cmd,
         ]
     )
