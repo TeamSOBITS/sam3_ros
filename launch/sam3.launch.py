@@ -184,6 +184,7 @@ def generate_launch_description():
         launch_arguments={
             "namespace": namespace,
             "params_file": bbox_to_3d_params_file,
+            "execute_default": execute_default,
         }.items(),
         condition=IfCondition(use_3d),
     )
