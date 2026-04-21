@@ -9,6 +9,7 @@ from launch.conditions import IfCondition
 
 
 def generate_launch_description():
+    use_sim_time = LaunchConfiguration("use_sim_time")
     image_topic_name = LaunchConfiguration("image_topic_name")
     weight_file = LaunchConfiguration("weight_file")
     execute_default = LaunchConfiguration("execute_default")
@@ -26,6 +27,11 @@ def generate_launch_description():
     use_3d = LaunchConfiguration("use_3d")
 
     launch_args = [
+        DeclareLaunchArgument(
+            "use_sim_time",
+            default_value="False",
+            description="Use simulation clock.",
+        ),
         DeclareLaunchArgument(
             "image_topic_name",
             description="ROS Topic Name of sensor_msgs/msg/Image message. (sensor_msgs/msg/Image)",
@@ -143,6 +149,7 @@ def generate_launch_description():
                 "publish_mask": publish_mask,
                 "publish_mask_pixels": publish_mask_pixels,
                 "publish_mask_image": publish_mask_image,
+                "use_sim_time": use_sim_time,
             },
         ],
         output="screen"
