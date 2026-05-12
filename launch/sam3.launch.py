@@ -1,9 +1,9 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, TimerAction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PythonExpression, AndSubstitution
+from launch.substitutions import LaunchConfiguration, AndSubstitution
 from launch_ros.actions import Node
 from launch.conditions import IfCondition
 
@@ -56,7 +56,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "execute_default",
-            default_value="False",
+            default_value="True",
             description="Whether to start SAM 3 enabled",
         ),
         DeclareLaunchArgument(
@@ -140,6 +140,7 @@ def generate_launch_description():
         parameters=[
             {
                 "weight_file": weight_file,
+                "execute_default": execute_default,
                 "image_topic_name": image_topic_name,
                 "threshold": threshold,
                 "half": half,
@@ -153,31 +154,6 @@ def generate_launch_description():
             },
         ],
         output="screen"
-    )
-
-    node_full_path = PythonExpression([
-        "'/' + '", namespace, "' + '/sam3_ros' if '", namespace, "' else '/sam3_ros'",
-    ])
-
-    configure_node = ExecuteProcess(
-        cmd=[
-            'bash',
-            '-lc',
-            'until ros2 lifecycle get "$0" >/dev/null 2>&1; do sleep 0.2; done; '
-            'ros2 lifecycle set "$0" configure',
-            node_full_path,
-        ],
-        output='screen'
-    )
-    activate_node = ExecuteProcess(
-        cmd=[
-            'bash',
-            '-lc',
-            'until ros2 lifecycle get "$0" 2>/dev/null | grep -q "inactive"; do sleep 0.2; done; '
-            'ros2 lifecycle set "$0" activate',
-            node_full_path,
-        ],
-        output='screen'
     )
 
     bbox_to_3d_cmd = IncludeLaunchDescription(
@@ -215,12 +191,6 @@ def generate_launch_description():
     return LaunchDescription(
         launch_args + [
             sam3_node_cmd,
-            TimerAction(period=0.1, actions=[configure_node]),
-            TimerAction(
-                period=0.2,
-                actions=[activate_node],
-                condition=IfCondition(execute_default),
-            ),
             bbox_to_3d_cmd,
             mask_to_3d_cmd,
         ]
