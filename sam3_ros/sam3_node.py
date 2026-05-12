@@ -341,7 +341,7 @@ def main(args=None):
     rclpy.init(args=args)
     node = Sam3Node()
 
-    execute_default = node.get_parameter("execute_default").get_parameter_value().bool_value
+    execute_default = node.get_parameter("execute_default").value
     if execute_default:
         node.trigger_configure()
         node.trigger_activate()
