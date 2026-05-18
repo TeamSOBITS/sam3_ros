@@ -24,7 +24,8 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     bbox_to_3d_params_file = LaunchConfiguration("bbox_to_3d_params_file")
     mask_to_3d_params_file = LaunchConfiguration("mask_to_3d_params_file")
-    use_3d = LaunchConfiguration("use_3d")
+    use_bbox_to_3d = LaunchConfiguration("use_bbox_to_3d")
+    use_mask_to_3d = LaunchConfiguration("use_mask_to_3d")
 
     launch_args = [
         DeclareLaunchArgument(
@@ -126,9 +127,14 @@ def generate_launch_description():
             description="Parameter file path for mask_to_3d",
         ),
         DeclareLaunchArgument(
-            "use_3d",
+            "use_bbox_to_3d",
             default_value="True",
-            description="Whether to activate 3D detections",
+            description="Whether to launch bbox_to_3d",
+        ),
+        DeclareLaunchArgument(
+            "use_mask_to_3d",
+            default_value="False",
+             description="Whether to launch mask_to_3d (requires publish_mask to be True)",
         ),
     ]
 
@@ -169,7 +175,7 @@ def generate_launch_description():
             "params_file": bbox_to_3d_params_file,
             "execute_default": execute_default,
         }.items(),
-        condition=IfCondition(use_3d),
+        condition=IfCondition(use_bbox_to_3d),
     )
 
     mask_to_3d_cmd = IncludeLaunchDescription(
@@ -185,7 +191,7 @@ def generate_launch_description():
             "params_file": mask_to_3d_params_file,
             "execute_default": execute_default,
         }.items(),
-        condition=IfCondition(AndSubstitution(publish_mask, use_3d)),
+        condition=IfCondition(AndSubstitution(publish_mask, use_mask_to_3d)),
     )
 
     return LaunchDescription(

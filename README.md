@@ -155,7 +155,8 @@ The following parameters can be configured in [sam3.launch.py](https://github.co
 | half                    | Enable FP16 inference                                                                                                           | True       |
 | image_show              | Enable Ultralytics visualization                                                                                                | False      |
 | execute_default         | Enable inference on startup                                                                                                     | True       |
-| use_3d                  | Enable 3D detection                                                                                                             | False      |
+| use_bbox_to_3d          | Launch the `bbox_to_3d` 3D detection pipeline                                                                                   | True       |
+| use_mask_to_3d          | Launch the `mask_to_3d` 3D detection pipeline. Requires `publish_mask` to also be `True`                                       | False       |
 | cluster_tolerance       | Distance threshold for grouping point clouds into a single object. Larger values increase search range and slow processing.     | 0.01       |
 | min_clusterSize         | Minimum number of points to be considered a valid object (smaller clusters are treated as noise).                               | 100        |
 | max_clusterSize         | Maximum number of points allowed for one object (larger clusters are rejected as background, e.g., floor).                      | 20000      |
