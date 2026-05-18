@@ -133,7 +133,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "use_mask_to_3d",
-            default_value="True",
+            default_value="False",
              description="Whether to launch mask_to_3d (requires publish_mask to be True)",
         ),
     ]
