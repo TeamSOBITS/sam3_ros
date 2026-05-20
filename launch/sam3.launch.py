@@ -12,7 +12,8 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     image_topic_name = LaunchConfiguration("image_topic_name")
     weight_file = LaunchConfiguration("weight_file")
-    execute_default = LaunchConfiguration("execute_default")
+    auto_configure = LaunchConfiguration("auto_configure")
+    auto_activate = LaunchConfiguration("auto_activate")
     image_show = LaunchConfiguration("image_show")
     threshold = LaunchConfiguration("threshold")
     prompt_text = LaunchConfiguration("prompt_text")
@@ -56,9 +57,14 @@ def generate_launch_description():
             description="Weight file path",
         ),
         DeclareLaunchArgument(
-            "execute_default",
+            "auto_configure",
             default_value="True",
-            description="Whether to start SAM 3 enabled",
+            description="Whether to configure the SAM3 lifecycle node on startup",
+        ),
+        DeclareLaunchArgument(
+            "auto_activate",
+            default_value="True",
+            description="Whether to activate the SAM3 lifecycle node on startup",
         ),
         DeclareLaunchArgument(
             "image_show",
@@ -146,7 +152,8 @@ def generate_launch_description():
         parameters=[
             {
                 "weight_file": weight_file,
-                "execute_default": execute_default,
+                "auto_configure": auto_configure,
+                "auto_activate": auto_activate,
                 "image_topic_name": image_topic_name,
                 "threshold": threshold,
                 "half": half,
@@ -173,7 +180,8 @@ def generate_launch_description():
         launch_arguments={
             "namespace": namespace,
             "params_file": bbox_to_3d_params_file,
-            "execute_default": execute_default,
+            "auto_configure": auto_configure,
+            "auto_activate": auto_activate,
         }.items(),
         condition=IfCondition(use_bbox_to_3d),
     )
@@ -189,7 +197,8 @@ def generate_launch_description():
         launch_arguments={
             "namespace": namespace,
             "params_file": mask_to_3d_params_file,
-            "execute_default": execute_default,
+            "auto_configure": auto_configure,
+            "auto_activate": auto_activate,
         }.items(),
         condition=IfCondition(AndSubstitution(publish_mask, use_mask_to_3d)),
     )
