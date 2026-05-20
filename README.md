@@ -129,6 +129,10 @@ Please **download the checkpoint you want to use manually in advance**.
     ```sh
     ros2 launch sam3_ros sam3.launch.py
     ```
+   Example: configure SAM 3 on startup without activating it
+    ```sh
+    ros2 launch sam3_ros sam3.launch.py auto_configure:=True auto_activate:=False
+    ```
 7. Update prompt during runtime (without relaunch).
     ```sh
     # Single class
@@ -154,7 +158,9 @@ The following parameters can be configured in [sam3.launch.py](https://github.co
 | threshold               | Mask confidence threshold                                                                                                       | 0.75       |
 | half                    | Enable FP16 inference                                                                                                           | True       |
 | image_show              | Enable Ultralytics visualization                                                                                                | False      |
-| execute_default         | Enable inference on startup                                                                                                     | True       |
+| auto_configure          | Configure the SAM3 lifecycle node on startup                                                                                    | True       |
+| auto_activate           | Activate the SAM3 lifecycle node on startup                                                                                     | True       |
+| execute_default         | Auto-configure and auto-activate included 3D lifecycle nodes on startup                                                         | True       |
 | use_bbox_to_3d          | Launch the `bbox_to_3d` 3D detection pipeline                                                                                   | True       |
 | use_mask_to_3d          | Launch the `mask_to_3d` 3D detection pipeline. Requires `publish_mask` to also be `True`                                       | False       |
 | cluster_tolerance       | Distance threshold for grouping point clouds into a single object. Larger values increase search range and slow processing.     | 0.01       |
