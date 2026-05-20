@@ -134,7 +134,7 @@ SAM 3 の重みファイルはライセンスの都合上，自動ではダウ�
     ```
    例: 起動時に SAM 3 を Configure のみして Activate しない場合
     ```sh
-    ros2 launch sam3_ros sam3.launch.py auto_configure:=True auto_activate:=False
+    ros2 launch sam3_ros sam3.launch.py auto_configure_2d:=True auto_activate_2d:=False
     ```
 
 <p align="right">(<a href="#readme-top">上に戻る</a>)</p>
@@ -150,8 +150,10 @@ SAM 3 の重みファイルはライセンスの都合上，自動ではダウ�
 | threshold                 | マスク生成の信頼度閾値 | 0.75 |
 | half                      | FP16 推論を有効にするか | True |
 | image_show                | 推論時に Ultralytics 側の表示を有効化 | False |
-| auto_configure            | 起動時に SAM3 ライフサイクルノードを Configure するか | True |
-| auto_activate             | 起動時に SAM3 ライフサイクルノードを Activate するか | True |
+| auto_configure_2d         | 起動時に SAM3 ライフサイクルノードを Configure するか | True |
+| auto_activate_2d          | 起動時に SAM3 ライフサイクルノードを Activate するか | True |
+| auto_configure_3d         | 起動時に Image to Position ライフサイクルノードを Configure するか | True |
+| auto_activate_3d          | 起動時に Image to Position ライフサイクルノードを Activate するか | True |
 | use_bbox_to_3d            | `bbox_to_3d` の3D検出パイプラインを起動するか | True |
 | use_mask_to_3d            | `mask_to_3d` の3D検出パイプラインを起動するか．`publish_mask` も `True` である必要があります | False |
 | cluster_tolerance         | どの程度離れた点群までは同一の物体とみなすかのしきい値．BoundingBox内に点群を飛ばした場合に，対象物に点群があたり，しきい値いないにある点群を1物体とみなしクラス分けを行います． そのため，あまり大きくすると点群1つ1つの探索範囲が広がり処理が遅くなってしまいます． | 0.01 |
