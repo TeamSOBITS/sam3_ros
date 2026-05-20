@@ -160,7 +160,6 @@ The following parameters can be configured in [sam3.launch.py](https://github.co
 | image_show              | Enable Ultralytics visualization                                                                                                | False      |
 | auto_configure          | Configure the SAM3 lifecycle node on startup                                                                                    | True       |
 | auto_activate           | Activate the SAM3 lifecycle node on startup                                                                                     | True       |
-| execute_default         | Auto-configure and auto-activate included 3D lifecycle nodes on startup                                                         | True       |
 | use_bbox_to_3d          | Launch the `bbox_to_3d` 3D detection pipeline                                                                                   | True       |
 | use_mask_to_3d          | Launch the `mask_to_3d` 3D detection pipeline. Requires `publish_mask` to also be `True`                                       | False       |
 | cluster_tolerance       | Distance threshold for grouping point clouds into a single object. Larger values increase search range and slow processing.     | 0.01       |
