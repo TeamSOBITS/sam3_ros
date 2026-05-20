@@ -12,8 +12,10 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     image_topic_name = LaunchConfiguration("image_topic_name")
     weight_file = LaunchConfiguration("weight_file")
-    auto_configure = LaunchConfiguration("auto_configure")
-    auto_activate = LaunchConfiguration("auto_activate")
+    auto_configure_2d = LaunchConfiguration("auto_configure_2d")
+    auto_activate_2d = LaunchConfiguration("auto_activate_2d")
+    auto_configure_3d = LaunchConfiguration("auto_configure_3d")
+    auto_activate_3d = LaunchConfiguration("auto_activate_3d")
     image_show = LaunchConfiguration("image_show")
     threshold = LaunchConfiguration("threshold")
     prompt_text = LaunchConfiguration("prompt_text")
@@ -57,14 +59,24 @@ def generate_launch_description():
             description="Weight file path",
         ),
         DeclareLaunchArgument(
-            "auto_configure",
+            "auto_configure_2d",
             default_value="True",
             description="Whether to configure the SAM3 lifecycle node on startup",
         ),
         DeclareLaunchArgument(
-            "auto_activate",
+            "auto_activate_2d",
             default_value="True",
             description="Whether to activate the SAM3 lifecycle node on startup",
+        ),
+        DeclareLaunchArgument(
+            "auto_configure_3d",
+            default_value="True",
+            description="Whether to configure the Image to Position lifecycle node on startup",
+        ),
+        DeclareLaunchArgument(
+            "auto_activate_3d",
+            default_value="True",
+            description="Whether to activate the Image to Position lifecycle node on startup",
         ),
         DeclareLaunchArgument(
             "image_show",
@@ -152,8 +164,8 @@ def generate_launch_description():
         parameters=[
             {
                 "weight_file": weight_file,
-                "auto_configure": auto_configure,
-                "auto_activate": auto_activate,
+                "auto_configure_2d": auto_configure_2d,
+                "auto_activate_2d": auto_activate_2d,
                 "image_topic_name": image_topic_name,
                 "threshold": threshold,
                 "half": half,
@@ -180,8 +192,8 @@ def generate_launch_description():
         launch_arguments={
             "namespace": namespace,
             "params_file": bbox_to_3d_params_file,
-            "auto_configure": auto_configure,
-            "auto_activate": auto_activate,
+            "auto_configure_3d": auto_configure_3d,
+            "auto_activate_3d": auto_activate_3d,
         }.items(),
         condition=IfCondition(use_bbox_to_3d),
     )
@@ -197,8 +209,8 @@ def generate_launch_description():
         launch_arguments={
             "namespace": namespace,
             "params_file": mask_to_3d_params_file,
-            "auto_configure": auto_configure,
-            "auto_activate": auto_activate,
+            "auto_configure_3d": auto_configure_3d,
+            "auto_activate_3d": auto_activate_3d,
         }.items(),
         condition=IfCondition(AndSubstitution(publish_mask, use_mask_to_3d)),
     )
