@@ -23,8 +23,8 @@ class Sam3Node(LifecycleNode):
         super().__init__("sam3_ros")
 
         self.declare_parameter("weight_file", "sam3.pt")
-        self.declare_parameter("auto_configure_2d", True)
-        self.declare_parameter("auto_activate_2d", True)
+        self.declare_parameter("auto_configure", True)
+        self.declare_parameter("auto_activate", True)
         self.declare_parameter("threshold", 0.75)
         self.declare_parameter("half", True)
         self.declare_parameter("image_topic_name", "image_raw")
@@ -342,12 +342,12 @@ def main(args=None):
     rclpy.init(args=args)
     node = Sam3Node()
 
-    auto_configure_2d = node.get_parameter("auto_configure_2d").value
-    auto_activate_2d = node.get_parameter("auto_activate_2d").value
+    auto_configure = node.get_parameter("auto_configure").value
+    auto_activate = node.get_parameter("auto_activate").value
 
-    if auto_configure_2d or auto_activate_2d:
+    if auto_configure or auto_activate:
         node.trigger_configure()
-    if auto_activate_2d:
+    if auto_activate:
         node.trigger_activate()
 
     node.get_logger().info("SAM3 Node started. Spinning...")

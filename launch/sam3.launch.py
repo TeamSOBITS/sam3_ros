@@ -164,8 +164,8 @@ def generate_launch_description():
         parameters=[
             {
                 "weight_file": weight_file,
-                "auto_configure_2d": auto_configure_2d,
-                "auto_activate_2d": auto_activate_2d,
+                "auto_configure": auto_configure_2d,
+                "auto_activate": auto_activate_2d,
                 "image_topic_name": image_topic_name,
                 "threshold": threshold,
                 "half": half,
