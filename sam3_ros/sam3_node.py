@@ -345,10 +345,18 @@ def main(args=None):
     auto_configure = node.get_parameter("auto_configure").value
     auto_activate = node.get_parameter("auto_activate").value
 
+    configure_succeeded = True
     if auto_configure or auto_activate:
-        node.trigger_configure()
+        configure_result = node.trigger_configure()
+        configure_succeeded = configure_result == TransitionCallbackReturn.SUCCESS
     if auto_activate:
-        node.trigger_activate()
+        if configure_succeeded:
+            node.trigger_activate()
+        else:
+            node.get_logger().error(
+                "Auto-activation requested, but node configuration failed; "
+                "skipping activation."
+            )
 
     node.get_logger().info("SAM3 Node started. Spinning...")
 
