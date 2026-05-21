@@ -23,7 +23,8 @@ class Sam3Node(LifecycleNode):
         super().__init__("sam3_ros")
 
         self.declare_parameter("weight_file", "sam3.pt")
-        self.declare_parameter("execute_default", True)
+        self.declare_parameter("auto_configure", True)
+        self.declare_parameter("auto_activate", True)
         self.declare_parameter("threshold", 0.75)
         self.declare_parameter("half", True)
         self.declare_parameter("image_topic_name", "image_raw")
@@ -341,10 +342,21 @@ def main(args=None):
     rclpy.init(args=args)
     node = Sam3Node()
 
-    execute_default = node.get_parameter("execute_default").value
-    if execute_default:
-        node.trigger_configure()
-        node.trigger_activate()
+    auto_configure = node.get_parameter("auto_configure").value
+    auto_activate = node.get_parameter("auto_activate").value
+
+    configure_succeeded = True
+    if auto_configure or auto_activate:
+        configure_result = node.trigger_configure()
+        configure_succeeded = configure_result == TransitionCallbackReturn.SUCCESS
+    if auto_activate:
+        if configure_succeeded:
+            node.trigger_activate()
+        else:
+            node.get_logger().error(
+                "Auto-activation requested, but node configuration failed; "
+                "skipping activation."
+            )
 
     node.get_logger().info("SAM3 Node started. Spinning...")
 
