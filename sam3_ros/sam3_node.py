@@ -163,19 +163,25 @@ class Sam3Node(LifecycleNode):
         return TransitionCallbackReturn.SUCCESS
 
     def on_deactivate(self, state: LifecycleState) -> TransitionCallbackReturn:
-        predictor_device = str(getattr(self.predictor, "device", ""))
-        del self.predictor
-        self.predictor = None
+        predictor = getattr(self, "predictor", None)
+        predictor_device = str(getattr(predictor, "device", ""))
+        if predictor is not None:
+            del self.predictor
+            self.predictor = None
 
         if "cuda" in predictor_device:
             self.get_logger().info("Clearing CUDA cache")
             torch.cuda.empty_cache()
         gc.collect()
 
-        self.destroy_subscription(self.sub)
-        self.sub = None
-        self.destroy_timer(self.inference_timer)
-        self.inference_timer = None
+        sub = getattr(self, "sub", None)
+        if sub is not None:
+            self.destroy_subscription(sub)
+            self.sub = None
+        inference_timer = getattr(self, "inference_timer", None)
+        if inference_timer is not None:
+            self.destroy_timer(inference_timer)
+            self.inference_timer = None
 
         super().on_deactivate(state)
         return TransitionCallbackReturn.SUCCESS
