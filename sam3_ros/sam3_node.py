@@ -38,7 +38,7 @@ class Sam3Node(LifecycleNode):
         self.declare_parameter("threshold", 0.75)
         self.declare_parameter("half", True)
         self.declare_parameter("image_topic_name", "image_raw")
-        self.declare_parameter("prompt_text", ["object"])
+        self.declare_parameter("prompt_text", [""])
         self.declare_parameter("image_show", False)
         self.declare_parameter("inference_hz", 5.0)
         self.declare_parameter("publish_mask", True)
@@ -389,15 +389,15 @@ class Sam3Node(LifecycleNode):
 
     def parse_prompt_text(self, raw_value):
         if isinstance(raw_value, list):
-            return [str(v) for v in raw_value]
+            return [str(v).strip() for v in raw_value if str(v).strip()]
         if isinstance(raw_value, str):
             value = raw_value.strip()
             if not value:
-                return ["object"]
+                return []
             try:
                 parsed = ast.literal_eval(value)
                 if isinstance(parsed, list):
-                    return [str(v) for v in parsed]
+                    return [str(v).strip() for v in parsed if str(v).strip()]
             except (ValueError, SyntaxError):
                 pass
             if value.startswith("[") and value.endswith("]"):
@@ -412,7 +412,7 @@ class Sam3Node(LifecycleNode):
             if "," in value:
                 return [v.strip() for v in value.split(",") if v.strip()]
             return [value]
-        return ["object"]
+        return []
 
     def get_color_for_class(self, name: str):
         """Deterministic color from class name"""
