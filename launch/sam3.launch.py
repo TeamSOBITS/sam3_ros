@@ -24,6 +24,7 @@ def generate_launch_description():
     publish_mask = LaunchConfiguration("publish_mask")
     publish_mask_pixels = LaunchConfiguration("publish_mask_pixels")
     publish_mask_image = LaunchConfiguration("publish_mask_image")
+    image_reliability = LaunchConfiguration("image_reliability")
     namespace = LaunchConfiguration("namespace")
     bbox_to_3d_params_file = LaunchConfiguration("bbox_to_3d_params_file")
     mask_to_3d_params_file = LaunchConfiguration("mask_to_3d_params_file")
@@ -33,7 +34,7 @@ def generate_launch_description():
     launch_args = [
         DeclareLaunchArgument(
             "use_sim_time",
-            default_value="False",
+            default_value="false",
             description="Use simulation clock.",
         ),
         DeclareLaunchArgument(
@@ -60,27 +61,27 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_configure_2d",
-            default_value="True",
+            default_value="true",
             description="Whether to configure the SAM3 lifecycle node on startup",
         ),
         DeclareLaunchArgument(
             "auto_activate_2d",
-            default_value="True",
+            default_value="true",
             description="Whether to activate the SAM3 lifecycle node on startup",
         ),
         DeclareLaunchArgument(
             "auto_configure_3d",
-            default_value="True",
+            default_value="true",
             description="Whether to configure the Image to Position lifecycle node on startup",
         ),
         DeclareLaunchArgument(
             "auto_activate_3d",
-            default_value="True",
+            default_value="true",
             description="Whether to activate the Image to Position lifecycle node on startup",
         ),
         DeclareLaunchArgument(
             "image_show",
-            default_value="False",
+            default_value="false",
             description="Flag to show image with predictions",
         ),
         DeclareLaunchArgument(
@@ -90,7 +91,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "prompt_text",
-            default_value="['object']",
+            default_value="['person']",
             # default_value="['object on the table']",
             # default_value="['metal cup', 'banana', 'pen', 'paper cup', 'headphone', 'dice', 'pringles potato chips', 'game controller']",
             # default_value="['red object']",
@@ -98,27 +99,27 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "inference_hz",
-            default_value="12.0",
+            default_value="10.0",
             description="SAM3 inference rate in Hz (process latest frame by timer)",
         ),
         DeclareLaunchArgument(
             "half",
-            default_value="False",
+            default_value="false",
             description="Use FP16 inference (only enable if CUDA is available)",
         ),
         DeclareLaunchArgument(
             "publish_mask",
-            default_value="False",
+            default_value="false",
             description="Publish object_masks topic (DetectMaskArray)",
         ),
         DeclareLaunchArgument(
             "publish_mask_pixels",
-            default_value="False",
+            default_value="false",
             description="Publish mask coordinates (pixel_x/pixel_y)",
         ),
         DeclareLaunchArgument(
             "publish_mask_image",
-            default_value="False",
+            default_value="false",
             description="Publish mask image field in DetectMask",
         ),
         DeclareLaunchArgument(
@@ -146,13 +147,18 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "use_bbox_to_3d",
-            default_value="True",
+            default_value="true",
             description="Whether to launch bbox_to_3d",
         ),
         DeclareLaunchArgument(
             "use_mask_to_3d",
-            default_value="False",
+            default_value="false",
              description="Whether to launch mask_to_3d (requires publish_mask to be True)",
+        ),
+        DeclareLaunchArgument(
+            "image_reliability",
+            default_value="best_effort",
+            description="QoS reliability for the image subscription: 'best_effort', 'reliable', 'system_default', 'best_available', or 'unknown'",
         ),
     ]
 
@@ -175,6 +181,7 @@ def generate_launch_description():
                 "publish_mask": publish_mask,
                 "publish_mask_pixels": publish_mask_pixels,
                 "publish_mask_image": publish_mask_image,
+                "image_reliability": image_reliability,
                 "use_sim_time": use_sim_time,
             },
         ],
