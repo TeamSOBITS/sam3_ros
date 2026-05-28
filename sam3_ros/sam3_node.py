@@ -145,9 +145,25 @@ class Sam3Node(LifecycleNode):
             self.predictor.setup_model()
             self.get_logger().info(f"SAM3 model loaded: {self.weight_file} on {self.predictor.device}")
         except FileNotFoundError:
+            predictor = getattr(self, "predictor", None)
+            predictor_device = str(getattr(predictor, "device", ""))
+            self.predictor = None
+            if predictor is not None:
+                del predictor
+            if "cuda" in predictor_device:
+                torch.cuda.empty_cache()
+            gc.collect()
             self.get_logger().error(f"Model file '{self.weight_file}' does not exist")
             return TransitionCallbackReturn.ERROR
         except Exception as e:
+            predictor = getattr(self, "predictor", None)
+            predictor_device = str(getattr(predictor, "device", ""))
+            self.predictor = None
+            if predictor is not None:
+                del predictor
+            if "cuda" in predictor_device:
+                torch.cuda.empty_cache()
+            gc.collect()
             self.get_logger().error(f"Failed to load SAM3 model: {e}")
             return TransitionCallbackReturn.ERROR
 
