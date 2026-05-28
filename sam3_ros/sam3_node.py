@@ -176,7 +176,7 @@ class Sam3Node(LifecycleNode):
         try:
             for param in params:
                 if param.name == "weight_file":
-                    if self.get_current_state().label == "active":
+                    if self._state_machine.current_state[1] == "active":
                         return SetParametersResult(successful=False, reason="weight_file cannot be changed while active; deactivate first")
                     new_path = str(param.value)
                     if not os.path.exists(new_path):
@@ -219,7 +219,7 @@ class Sam3Node(LifecycleNode):
                     self.publish_mask_image = bool(param.value)
                     self.get_logger().info(f"Updated publish_mask_image: {self.publish_mask_image}")
                 elif param.name == "image_reliability":
-                    if self.get_current_state().label == "active":
+                    if self._state_machine.current_state[1] == "active":
                         return SetParametersResult(successful=False, reason="image_reliability cannot be changed while active; deactivate first")
                     value = str(param.value)
                     if value not in self._RELIABILITY_MAP:
