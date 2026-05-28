@@ -46,7 +46,15 @@ class Sam3Node(LifecycleNode):
         self.declare_parameter("publish_mask_image", True)
         self.declare_parameter("image_reliability", "best_effort")
 
+        self.predictor = None
+        self.sub = None
+        self.inference_timer = None
+
     def on_configure(self, state: LifecycleState) -> TransitionCallbackReturn:
+
+        self.predictor = None
+        self.sub = None
+        self.inference_timer = None
 
         self.weight_file = self.get_parameter("weight_file").value
         self.threshold = float(self.get_parameter("threshold").value)
