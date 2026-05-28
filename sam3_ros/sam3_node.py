@@ -49,18 +49,31 @@ class Sam3Node(LifecycleNode):
     def on_configure(self, state: LifecycleState) -> TransitionCallbackReturn:
 
         self.weight_file = self.get_parameter("weight_file").value
-        self.threshold = self.get_parameter("threshold").value
+        self.threshold = float(self.get_parameter("threshold").value)
         self.half = self.get_parameter("half").value
         self.image_topic = self.get_parameter("image_topic_name").value
         self.prompt_text = self.parse_prompt_text(
             self.get_parameter("prompt_text").value
         )
         self.image_show = self.get_parameter("image_show").value
-        self.inference_hz = max(float(self.get_parameter("inference_hz").value), 0.1)
+        self.inference_hz = float(self.get_parameter("inference_hz").value)
         self.publish_mask = self.get_parameter("publish_mask").value
         self.publish_mask_pixels = self.get_parameter("publish_mask_pixels").value
         self.publish_mask_image = self.get_parameter("publish_mask_image").value
         self.image_reliability = self.get_parameter("image_reliability").value
+
+        if not os.path.exists(self.weight_file):
+            self.get_logger().warn(f"Weight file not found at configure time: {self.weight_file}")
+        if not 0.0 < self.threshold <= 1.0:
+            self.get_logger().error(f"threshold must be in (0.0, 1.0], got {self.threshold}")
+            return TransitionCallbackReturn.FAILURE
+        if not self.prompt_text:
+            self.get_logger().error("prompt_text must not be empty")
+            return TransitionCallbackReturn.FAILURE
+        if self.inference_hz <= 0.0:
+            self.get_logger().error(f"inference_hz must be > 0, got {self.inference_hz}")
+            return TransitionCallbackReturn.FAILURE
+        self.inference_hz = max(self.inference_hz, 0.1)
 
         if self.image_reliability not in self._RELIABILITY_MAP:
             self.get_logger().error(
@@ -101,7 +114,6 @@ class Sam3Node(LifecycleNode):
         self.latest_stamp = None
         self.last_processed_stamp = None
         self.is_processing = False
-        self.model_error_reported = False
         self.last_stamp = None
         self._param_cb = self.add_on_set_parameters_callback(self.on_parameter_update)
 
@@ -163,11 +175,33 @@ class Sam3Node(LifecycleNode):
     def on_parameter_update(self, params) -> SetParametersResult:
         try:
             for param in params:
-                if param.name == "prompt_text":
-                    self.prompt_text = self.parse_prompt_text(param.value)
+                if param.name == "weight_file":
+                    if self.get_current_state().label == "active":
+                        return SetParametersResult(successful=False, reason="weight_file cannot be changed while active; deactivate first")
+                    new_path = str(param.value)
+                    if not os.path.exists(new_path):
+                        return SetParametersResult(successful=False, reason=f"Weight file not found: {new_path}")
+                    self.weight_file = new_path
+                    self.get_logger().info(f"Updated weight_file: {self.weight_file}")
+                elif param.name == "threshold":
+                    value = float(param.value)
+                    if not 0.0 < value <= 1.0:
+                        return SetParametersResult(successful=False, reason="threshold must be in (0.0, 1.0]")
+                    self.threshold = value
+                    if self.predictor is not None:
+                        self.predictor.args.conf = self.threshold
+                    self.get_logger().info(f"Updated threshold: {self.threshold}")
+                elif param.name == "prompt_text":
+                    parsed = self.parse_prompt_text(param.value)
+                    if not parsed:
+                        return SetParametersResult(successful=False, reason="prompt_text must not be empty")
+                    self.prompt_text = parsed
                     self.get_logger().info(f"Updated prompt_text: {self.prompt_text}")
                 elif param.name == "inference_hz":
-                    self.inference_hz = max(float(param.value), 0.1)
+                    value = float(param.value)
+                    if value <= 0.0:
+                        return SetParametersResult(successful=False, reason="inference_hz must be > 0")
+                    self.inference_hz = max(value, 0.1)
                     if hasattr(self, "inference_timer") and self.inference_timer is not None:
                         self.destroy_timer(self.inference_timer)
                         self.inference_timer = self.create_timer(
