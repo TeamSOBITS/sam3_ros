@@ -240,15 +240,13 @@ class Sam3Node(LifecycleNode):
         self.latest_stamp = msg.header.stamp
 
     def inference_timer_cb(self) -> None:
-        if not os.path.exists(self.weight_file):
-            if not self.model_error_reported:
-                self.get_logger().error(
-                    f"SAM3 weight file not found: {self.weight_file}. "
-                    "Inference is disabled until a valid weight_file is set."
-                )
-                self.model_error_reported = True
+        if self.predictor is None:
             return
         if self.latest_msg is None:
+            self.get_logger().warn(
+                f"Waiting for image on '{self.image_topic}'",
+                throttle_duration_sec=10.0,
+            )
             return
         if self.latest_stamp == self.last_processed_stamp:
             return
