@@ -1,7 +1,9 @@
 import ast
+import gc
 import os
 import cv2
 import numpy as np
+import torch
 from cv_bridge import CvBridge
 
 import rclpy
@@ -115,10 +117,20 @@ class Sam3Node(LifecycleNode):
         return TransitionCallbackReturn.SUCCESS
 
     def on_deactivate(self, state: LifecycleState) -> TransitionCallbackReturn:
+        predictor_device = str(getattr(self.predictor, "device", ""))
         del self.predictor
         self.predictor = None
+
+        if "cuda" in predictor_device:
+            self.get_logger().info("Clearing CUDA cache")
+            torch.cuda.empty_cache()
+        gc.collect()
+
         self.destroy_subscription(self.sub)
+        self.sub = None
         self.destroy_timer(self.inference_timer)
+        self.inference_timer = None
+
         super().on_deactivate(state)
         return TransitionCallbackReturn.SUCCESS
 
