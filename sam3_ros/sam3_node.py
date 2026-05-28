@@ -103,7 +103,16 @@ class Sam3Node(LifecycleNode):
             show=self.image_show,
             verbose=False,
         )
-        self.predictor = SAM3SemanticPredictor(overrides=overrides)
+        try:
+            self.predictor = SAM3SemanticPredictor(overrides=overrides)
+            self.predictor.setup_model()
+            self.get_logger().info(f"SAM3 model loaded: {self.weight_file} on {self.predictor.device}")
+        except FileNotFoundError:
+            self.get_logger().error(f"Model file '{self.weight_file}' does not exist")
+            return TransitionCallbackReturn.ERROR
+        except Exception as e:
+            self.get_logger().error(f"Failed to load SAM3 model: {e}")
+            return TransitionCallbackReturn.ERROR
 
         self.sub = self.create_subscription(
             Image, self.image_topic, self.image_cb, self.image_qos_profile
