@@ -21,6 +21,14 @@ from ultralytics.models.sam import SAM3SemanticPredictor
 
 class Sam3Node(LifecycleNode):
 
+    _RELIABILITY_MAP = {
+        "best_effort": QoSReliabilityPolicy.BEST_EFFORT,
+        "reliable": QoSReliabilityPolicy.RELIABLE,
+        "system_default": QoSReliabilityPolicy.SYSTEM_DEFAULT,
+        "best_available": QoSReliabilityPolicy.BEST_AVAILABLE,
+        "unknown": QoSReliabilityPolicy.UNKNOWN,
+    }
+
     def __init__(self) -> None:
         super().__init__("sam3_ros")
 
@@ -36,6 +44,7 @@ class Sam3Node(LifecycleNode):
         self.declare_parameter("publish_mask", True)
         self.declare_parameter("publish_mask_pixels", True)
         self.declare_parameter("publish_mask_image", True)
+        self.declare_parameter("image_reliability", "best_effort")
 
     def on_configure(self, state: LifecycleState) -> TransitionCallbackReturn:
 
@@ -51,6 +60,13 @@ class Sam3Node(LifecycleNode):
         self.publish_mask = self.get_parameter("publish_mask").value
         self.publish_mask_pixels = self.get_parameter("publish_mask_pixels").value
         self.publish_mask_image = self.get_parameter("publish_mask_image").value
+        self.image_reliability = self.get_parameter("image_reliability").value
+
+        if self.image_reliability not in self._RELIABILITY_MAP:
+            self.get_logger().error(
+                f"image_reliability must be one of {list(self._RELIABILITY_MAP)}, got '{self.image_reliability}'"
+            )
+            return TransitionCallbackReturn.FAILURE
 
         self.get_logger().info(f"Weight file: {self.weight_file}")
         self.get_logger().info(f"Threshold: {self.threshold}")
@@ -62,9 +78,10 @@ class Sam3Node(LifecycleNode):
         self.get_logger().info(f"Publish mask: {self.publish_mask}")
         self.get_logger().info(f"Publish mask pixels: {self.publish_mask_pixels}")
         self.get_logger().info(f"Publish mask image: {self.publish_mask_image}")
+        self.get_logger().info(f"Image reliability: {self.image_reliability}")
 
         self.image_qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            reliability=self._RELIABILITY_MAP[self.image_reliability],
             history=QoSHistoryPolicy.KEEP_LAST,
             durability=QoSDurabilityPolicy.VOLATILE,
             depth=1,
@@ -167,6 +184,18 @@ class Sam3Node(LifecycleNode):
                 elif param.name == "publish_mask_image":
                     self.publish_mask_image = bool(param.value)
                     self.get_logger().info(f"Updated publish_mask_image: {self.publish_mask_image}")
+                elif param.name == "image_reliability":
+                    if self.get_current_state().label == "active":
+                        return SetParametersResult(successful=False, reason="image_reliability cannot be changed while active; deactivate first")
+                    value = str(param.value)
+                    if value not in self._RELIABILITY_MAP:
+                        return SetParametersResult(
+                            successful=False,
+                            reason=f"image_reliability must be one of {list(self._RELIABILITY_MAP)}",
+                        )
+                    self.image_reliability = value
+                    self.image_qos_profile.reliability = self._RELIABILITY_MAP[value]
+                    self.get_logger().info(f"Updated image_reliability: {self.image_reliability}")
         except Exception as e:
             return SetParametersResult(successful=False, reason=str(e))
 
