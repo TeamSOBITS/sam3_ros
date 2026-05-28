@@ -128,6 +128,17 @@ class Sam3Node(LifecycleNode):
         super().on_configure(state)
         return TransitionCallbackReturn.SUCCESS
 
+    def _release_predictor(self) -> None:
+        predictor = getattr(self, "predictor", None)
+        predictor_device = str(getattr(predictor, "device", ""))
+        self.predictor = None
+        if predictor is not None:
+            del predictor
+        if "cuda" in predictor_device:
+            self.get_logger().info("Clearing CUDA cache")
+            torch.cuda.empty_cache()
+        gc.collect()
+
     def on_activate(self, state: LifecycleState) -> TransitionCallbackReturn:
 
         overrides = dict(
@@ -145,25 +156,11 @@ class Sam3Node(LifecycleNode):
             self.predictor.setup_model()
             self.get_logger().info(f"SAM3 model loaded: {self.weight_file} on {self.predictor.device}")
         except FileNotFoundError:
-            predictor = getattr(self, "predictor", None)
-            predictor_device = str(getattr(predictor, "device", ""))
-            self.predictor = None
-            if predictor is not None:
-                del predictor
-            if "cuda" in predictor_device:
-                torch.cuda.empty_cache()
-            gc.collect()
+            self._release_predictor()
             self.get_logger().error(f"Model file '{self.weight_file}' does not exist")
             return TransitionCallbackReturn.ERROR
         except Exception as e:
-            predictor = getattr(self, "predictor", None)
-            predictor_device = str(getattr(predictor, "device", ""))
-            self.predictor = None
-            if predictor is not None:
-                del predictor
-            if "cuda" in predictor_device:
-                torch.cuda.empty_cache()
-            gc.collect()
+            self._release_predictor()
             self.get_logger().error(f"Failed to load SAM3 model: {e}")
             return TransitionCallbackReturn.ERROR
 
@@ -179,16 +176,7 @@ class Sam3Node(LifecycleNode):
         return TransitionCallbackReturn.SUCCESS
 
     def on_deactivate(self, state: LifecycleState) -> TransitionCallbackReturn:
-        predictor = getattr(self, "predictor", None)
-        predictor_device = str(getattr(predictor, "device", ""))
-        if predictor is not None:
-            del self.predictor
-            self.predictor = None
-
-        if "cuda" in predictor_device:
-            self.get_logger().info("Clearing CUDA cache")
-            torch.cuda.empty_cache()
-        gc.collect()
+        self._release_predictor()
 
         sub = getattr(self, "sub", None)
         if sub is not None:
