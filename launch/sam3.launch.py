@@ -25,13 +25,25 @@ def generate_launch_description():
     publish_mask_pixels = LaunchConfiguration("publish_mask_pixels")
     publish_mask_image = LaunchConfiguration("publish_mask_image")
     image_reliability = LaunchConfiguration("image_reliability")
+    device = LaunchConfiguration("device")
     namespace = LaunchConfiguration("namespace")
+    node_name = LaunchConfiguration("node_name")
     bbox_to_3d_params_file = LaunchConfiguration("bbox_to_3d_params_file")
     mask_to_3d_params_file = LaunchConfiguration("mask_to_3d_params_file")
     use_bbox_to_3d = LaunchConfiguration("use_bbox_to_3d")
     use_mask_to_3d = LaunchConfiguration("use_mask_to_3d")
 
     launch_args = [
+        DeclareLaunchArgument(
+            "namespace",
+            default_value="",
+            description="Namespace for the nodes",
+        ),
+        DeclareLaunchArgument(
+            "node_name",
+            default_value="sam3_node",
+            description="Name of the SAM3 node",
+        ),
         DeclareLaunchArgument(
             "use_sim_time",
             default_value="false",
@@ -40,7 +52,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "image_topic_name",
             description="ROS Topic Name of sensor_msgs/msg/Image message. (sensor_msgs/msg/Image)",
-            default_value="camera/color/image_raw",                ## realsense
+            default_value="camera/color/image_raw",              ## realsense
             # default_value="rgb/image_raw",                       ## azure_kinect
             # default_value="camera/color/image_raw",              ## orbbec_series
             # default_value="camera/rgb/image_raw",                ## xtion
@@ -123,11 +135,6 @@ def generate_launch_description():
             description="Publish mask image field in DetectMask",
         ),
         DeclareLaunchArgument(
-            "namespace",
-            default_value="",
-            description="Namespace for the nodes",
-        ),
-        DeclareLaunchArgument(
             "bbox_to_3d_params_file",
             default_value=os.path.join(
                 get_package_share_directory("image_to_position"),
@@ -160,12 +167,17 @@ def generate_launch_description():
             default_value="best_effort",
             description="QoS reliability for the image subscription: 'best_effort', 'reliable', 'system_default', 'best_available', or 'unknown'",
         ),
+        DeclareLaunchArgument(
+            "device",
+            default_value="cuda",
+            description="Inference device: 'cuda', 'cpu', or 'cuda:0'",
+        ),
     ]
 
     sam3_node_cmd = Node(
         package="sam3_ros",
         executable="sam3_node",
-        name="sam3_ros",
+        name=node_name,
         namespace=namespace,
         parameters=[
             {
@@ -182,6 +194,7 @@ def generate_launch_description():
                 "publish_mask_pixels": publish_mask_pixels,
                 "publish_mask_image": publish_mask_image,
                 "image_reliability": image_reliability,
+                "device": device,
                 "use_sim_time": use_sim_time,
             },
         ],
