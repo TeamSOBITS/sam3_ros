@@ -21,172 +21,178 @@
       <ul>
         <li><a href="#environment">Environment</a></li>
         <li><a href="#installation">Installation</a></li>
-        <li><a href="#download-sam-3-weight-file">Download SAM 3 Weight File</a></li>
+        <li><a href="#download-sam3-weight-file">Download SAM3 Weight File</a></li>
       </ul>
     </li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#parameters">Parameters</a></li>
+    <li><a href="#topics">Topics</a></li>
     <li><a href="#demo">Demo</a></li>
-     <!-- <li><a href="#milestone">Milestone</a></li> -->
     <li><a href="#references">References</a></li>
   </ol>
 </details>
 
 ## Overview
-`sam3_ros` is a wrapper package that enables the use of Meta’s Segment Anything Model 3 (SAM3) in ROS 2.
+`sam3_ros` is a ROS 2 lifecycle wrapper for Meta's Segment Anything Model 3 (SAM3).
 
-This package performs **promptable segmentation using text prompts**, providing the following features in a ROS 2 environment.
+It performs **promptable instance segmentation using text prompts** and exposes the results as standard ROS 2 messages.
 
 **Main Features:**
-- Object segmentation via text instructions  
-- Multi-class and multi-instance support  
-- Bounding box output (Detection2D)  
-- Detection with segmentation masks (Detection2DWithMask)  
-- Visualization image output 
+- Text-prompted object segmentation (single and multi-class)
+- Per-instance bounding box output (`Detection2DArray`)
+- Per-instance mask output (`DetectMaskArray`) with optional pixel coordinates and mask image
+- Annotated visualization image output
+- Timer-driven inference loop decoupled from the image subscription
+- Full ROS 2 lifecycle support (`configure` → `activate` → `deactivate` → `cleanup`)
+- All parameters configurable at runtime via `ros2 param set`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 ## Setup
-This section explains how to set up this repository.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 ### Environment
 
-| System  | Version |
-| ------------- | ------------- |
-| Ubuntu | 22.04 (Jammy Jellyfish) |
-| ROS | Humble Hawksbill |
-| Python | 3.0~ |
+| System | Version |
+| ------ | ------- |
+| Ubuntu | 24.04 (Noble Numbat) |
+| ROS 2  | Jazzy Jalisco |
+| Python | 3.12 |
 
 ### Installation
 1. Move to your ROS 2 `src` directory.
    ```sh
-   cd　~/colcon_ws/src/
+   cd ~/colcon_ws/src/
    ```
 2. Clone this repository.
    ```sh
-   git clone -b humble-devel https://github.com/TeamSOBITS/sam3_ros.git
+   git clone https://github.com/TeamSOBITS/sam3_ros.git
    ```
-3. Navigate to this repository.
+3. Navigate into the repository and install dependencies.
    ```sh
-   cd sam3_ros
+   cd sam3_ros/
+   bash install.sh
    ```
-4. Install dependencies.
-    ```sh
-    bash install.sh
-    ```
-5. Build the package.
+4. Build the package.
    ```sh
    cd ~/colcon_ws/
    colcon build --symlink-install
+   source install/setup.bash
    ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-### Download SAM 3 Weight File
-Two versions of checkpoints are available: `sam3.pt` for SAM 3 and `sam3.1_multiplex.pt` for SAM 3.1.
+### Download SAM3 Weight File
+Two checkpoints are available: `sam3.pt` (SAM3) and `sam3.1_multiplex.pt` (SAM3.1).
 
-SAM 3 weight files are not downloaded automatically due to licensing restrictions.  
-Please **download the checkpoint you want to use manually in advance**.
+Weight files are not downloaded automatically due to licensing restrictions.
+Please **download the checkpoint manually** before launching the node.
 
-1. Visit the [**SAM 3 model page**](https://huggingface.co/facebook/sam3) or the [**SAM 3.1 model page**](https://huggingface.co/facebook/sam3.1) on Hugging Face, and request access to the model weights.
+1. Visit the [**SAM3 model page**](https://huggingface.co/facebook/sam3) or the [**SAM3.1 model page**](https://huggingface.co/facebook/sam3.1) on Hugging Face and request access.
 
-2. After approval, download [`sam3.pt`](https://huggingface.co/facebook/sam3/resolve/main/sam3.pt?download=true) or [`sam3.1_multiplex.pt`](https://huggingface.co/facebook/sam3.1/resolve/main/sam3.1_multiplex.pt?download=true).
+2. After approval, download [`sam3.pt`](https://huggingface.co/facebook/sam3/resolve/main/sam3.pt?download=true) and/or [`sam3.1_multiplex.pt`](https://huggingface.co/facebook/sam3.1/resolve/main/sam3.1_multiplex.pt?download=true).
 
-3. Place the downloaded checkpoint (`sam3.pt` or `sam3.1_multiplex.pt`) in the directory below.
-   - Weight directory: [`sam3_ros/weights`](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights)
+3. Place the downloaded file in the weights directory:
+   ```
+   sam3_ros/weights/
+   ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 ## Usage
-1. Launch your camera and modify **image_topic_name** in [sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py) to match your camera topic.
-   
-   Example:
-   ```sh
-   default_value="/camera/color/image_raw"              # orbbec_series
-   ```
-2. If using an RGB-D camera, also modify **point_cloud_topic** in [sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py).
-   Example:
-   ```sh
-   default_value="/camera/depth_registered/points"     # orbbec_series
-   ```
-3. Place your prepared weight file into the [weights directory](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights).
-4. Update **weight_file** in [sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py)
-   ```sh
-   default_value=os.path.join(get_package_share_directory("sam3_ros"), "weights", "sam3.pt")  # or "sam3.1_multiplex.pt"
-   ```
-5. Rebuild the package.
-   ```sh
-   cd ~/colcon_ws/
-   colcon build --symlink-install
-   ```
-6. Launch SAM 3.
-    ```sh
-    ros2 launch sam3_ros sam3.launch.py
-    ```
-   Example: configure SAM 3 on startup without activating it
-    ```sh
-    ros2 launch sam3_ros sam3.launch.py auto_configure:=True auto_activate:=False
-    ```
-7. Update prompt during runtime (without relaunch).
-    ```sh
-    # Single class
-    ros2 topic pub --once /sam3_ros/set_prompt_text std_msgs/msg/String "{data: 'bottle'}"
 
-    # Multiple classes (comma separated or list string)
-    ros2 topic pub --once /sam3_ros/set_prompt_text std_msgs/msg/String "{data: 'bottle,cup,person'}"
-    # ros2 topic pub --once /sam3_ros/set_prompt_text std_msgs/msg/String "{data: \"['bottle','cup','person']\"}"
-    ```
+1. Launch your camera and set `image_topic_name` to match your camera topic:
+   ```sh
+   ros2 launch sam3_ros sam3.launch.py image_topic_name:=/camera/color/image_raw
+   ```
+
+2. Launch with auto configure and activate:
+   ```sh
+   ros2 launch sam3_ros sam3.launch.py auto_configure_2d:=true auto_activate_2d:=true
+   ```
+
+3. Or manage the lifecycle manually:
+   ```sh
+   ros2 launch sam3_ros sam3.launch.py
+   ros2 lifecycle set /sam3_node configure
+   ros2 lifecycle set /sam3_node activate
+   ```
+
+4. Update the text prompt at runtime without restarting:
+   ```sh
+   ros2 param set /sam3_node prompt_text "['chair', 'table']"
+   ```
+
+5. Deactivate, cleanup, and reconfigure with a different model:
+   ```sh
+   ros2 lifecycle set /sam3_node deactivate
+   ros2 lifecycle set /sam3_node cleanup
+   ros2 param set /sam3_node weight_file sam3.1_multiplex.pt
+   ros2 lifecycle set /sam3_node configure
+   ros2 lifecycle set /sam3_node activate
+   ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 ## Parameters
-The following parameters can be configured in [sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py).
 
+The following parameters can be set via the launch file or `ros2 param set` at runtime.
 
-| Parameter               | Description                                                                                                                     | Default    |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| weight_file             | SAM3 weight file                                                                                                                | sam3.pt    |
-| prompt_text             | Target segmentation classes (string array)                                                                                      | ["object"] |
-| inference_hz            | Inference execution rate (Hz). SAM3 processes the latest image at this rate.                                                    | 5.0        |
-| threshold               | Mask confidence threshold                                                                                                       | 0.75       |
-| half                    | Enable FP16 inference                                                                                                           | True       |
-| image_show              | Enable Ultralytics visualization                                                                                                | False      |
-| auto_configure_2d       | Configure the SAM3 lifecycle node on startup                                                                                    | True       |
-| auto_activate_2d        | Activate the SAM3 lifecycle node on startup                                                                                     | True       |
-| auto_configure_3d       | Configure the Image to Position lifecycle node on startup                                                                       | True       |
-| auto_activate_3d        | Activate the Image to Position lifecycle node on startup                                                                        | True       |
-| use_bbox_to_3d          | Launch the `bbox_to_3d` 3D detection pipeline                                                                                   | True       |
-| use_mask_to_3d          | Launch the `mask_to_3d` 3D detection pipeline. Requires `publish_mask` to also be `True`                                        | False      |
-| cluster_tolerance       | Distance threshold for grouping point clouds into a single object. Larger values increase search range and slow processing.     | 0.01       |
-| min_clusterSize         | Minimum number of points to be considered a valid object (smaller clusters are treated as noise).                               | 100        |
-| max_clusterSize         | Maximum number of points allowed for one object (larger clusters are rejected as background, e.g., floor).                      | 20000      |
-| noise_point_cloud_range | Amount of point cloud trimming in x/y/z to remove background surfaces (floor/walls). Excessive values may remove object points. | 0.01       |
-| fast_shot               | Enable fast_shot                                                                                                                | true       |
-| enable_id               | Append IDs to detected labels (e.g., apple_01)                                                                                  | false      |
+| Parameter             | Description                                                                                   | Default                        | Runtime update |
+| --------------------- | --------------------------------------------------------------------------------------------- | ------------------------------ | -------------- |
+| `weight_file`         | SAM3 weight filename                                                                          | `sam3.pt`                      | cleanup first  |
+| `weights_path`        | Directory containing the weight file                                                          | `<package>/weights`            | cleanup first  |
+| `prompt_text`         | Text prompt list for segmentation (string array)                                              | `['']`                         | yes            |
+| `threshold`           | Mask confidence threshold (0.0, 1.0]                                                          | `0.75`                         | yes            |
+| `inference_hz`        | Inference rate in Hz (timer-driven, processes latest frame)                                   | `5.0`                          | yes            |
+| `half`                | Enable FP16 inference (requires CUDA)                                                         | `true`                         | no             |
+| `image_show`          | Enable Ultralytics built-in visualization window                                              | `false`                        | no             |
+| `publish_mask`        | Publish `object_masks` topic (`DetectMaskArray`)                                              | `false`                        | yes            |
+| `publish_mask_pixels` | Include pixel coordinate lists (`pixel_x`/`pixel_y`) in each mask                            | `false`                        | yes            |
+| `publish_mask_image`  | Include binary mask image field in each `DetectMask`                                          | `false`                        | yes            |
+| `image_reliability`   | QoS reliability for the image subscription (`best_effort`, `reliable`, `system_default`, ...) | `best_effort`                  | inactive only  |
+| `device`              | Inference device (`cuda`, `cpu`, `cuda:0`, ...)                                               | `cuda` if available else `cpu` | no             |
+| `auto_configure_2d`   | Configure the SAM3 lifecycle node on startup                                                  | `false`                        | —              |
+| `auto_activate_2d`    | Activate the SAM3 lifecycle node on startup                                                   | `false`                        | —              |
+| `auto_configure_3d`   | Configure the image_to_position lifecycle node on startup                                     | `false`                        | —              |
+| `auto_activate_3d`    | Activate the image_to_position lifecycle node on startup                                      | `false`                        | —              |
+| `use_bbox_to_3d`      | Launch the `bbox_to_3d` 3D detection pipeline                                                 | `false`                        | —              |
+| `use_mask_to_3d`      | Launch the `mask_to_3d` pipeline (requires `publish_mask:=true`)                              | `false`                        | —              |
+
+> **Note:** `weight_file` and `weights_path` can only be changed when the node is in the `unconfigured` state (after `deactivate` + `cleanup`).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
+## Topics
+
 ### Publications
 
-| Topic                                   | Type                     | Description                  |
-| --------------------------------------- | ------------------------ | ---------------------------- |
-| `/sam3_ros/object_boxes`                | Detection2DArray         | Bounding boxes only          |
-| `/sam3_ros/object_masks`                | DetectMaskArray          | Instance mask results        |
-| `/sam3_ros/segmented_image`             | sensor_msgs/Image        | Visualization image          |
+| Topic                        | Type                              | Description                          |
+| ---------------------------- | --------------------------------- | ------------------------------------ |
+| `<node>/object_boxes`        | `vision_msgs/Detection2DArray`    | Bounding boxes per detected instance |
+| `<node>/object_masks`        | `sobits_interfaces/DetectMaskArray` | Instance masks (when `publish_mask:=true`) |
+| `<node>/detected_image`      | `sensor_msgs/Image`               | Annotated visualization image        |
+
+### Subscriptions
+
+| Topic               | Type                    | Description          |
+| ------------------- | ----------------------- | -------------------- |
+| `<image_topic_name>` | `sensor_msgs/Image`    | Input camera image   |
+
+> `<node>` defaults to `sam3_node`. Override with the `node_name` launch argument.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 ## Demo
-| Object Detection | Object Recognition | Instance Segmentation |
+| Object Detection | Multi-class | Instance Segmentation |
 |:---:|:---:|:---:|
 | ![](docs/sam3_object_raw.png) | ![](docs/sam3_multiclass_raw.png) | ![](docs/sam3_instant_raw.png) |
 | ![](docs/sam3_object_result.png) | ![](docs/sam3_multiclass_result.png) | ![](docs/sam3_instant_result.png) |
@@ -196,7 +202,7 @@ The following parameters can be configured in [sam3.launch.py](https://github.co
 
 ## References
 * [SAM 3: Segment Anything with Concepts](https://github.com/facebookresearch/sam3)
-* [ Ultralytics Documentation](https://docs.ultralytics.com/models/sam-3/)
+* [Ultralytics Documentation](https://docs.ultralytics.com/models/sam-3/)
 
 [contributors-shield]: https://img.shields.io/github/contributors/TeamSOBITS/sam3_ros.svg?style=for-the-badge
 [contributors-url]: https://github.com/TeamSOBITS/sam3_ros/graphs/contributors

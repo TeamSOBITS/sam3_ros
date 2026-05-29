@@ -21,163 +21,175 @@
       <ul>
         <li><a href="#環境条件">環境条件</a></li>
         <li><a href="#インストール方法">インストール方法</a></li>
-        <li><a href="#SAM-3-ウェイトファイルのダウンロード">SAM 3 ウェイトファイルのダウンロード</a></li>
+        <li><a href="#SAM3-ウェイトファイルのダウンロード">SAM3 ウェイトファイルのダウンロード</a></li>
       </ul>
     </li>
     <li><a href="#実行操作方法">実行・操作方法</a></li>
     <li><a href="#パラメーター">パラメーター</a></li>
+    <li><a href="#トピック">トピック</a></li>
     <li><a href="#デモ">デモ</a></li>
-     <!-- <li><a href="#マイルストーン">マイルストーン</a></li> -->
     <li><a href="#参考文献">参考文献</a></li>
   </ol>
 </details>
 
 ## 概要
-sam3_ros は，Meta が公開した Segment Anything Model 3 (SAM3) を ROS 2で利用するためのラッパーパッケージです．
+`sam3_ros` は，Meta が公開した Segment Anything Model 3（SAM3）を ROS 2 で利用するためのライフサイクル対応ラッパーパッケージです．
 
-本パッケージでは **テキストプロンプトに基づくクラス指定セグメンテーション** を行い，以下の機能がROS2環境で実現できます．
+**テキストプロンプトに基づくインスタンスセグメンテーション**を行い，結果を標準的な ROS 2 メッセージとして配信します．
 
-- テキスト指示による物体セグメンテーション
-- マルチクラス・マルチインスタンス対応
-- バウンディングボックス (Detection2D)
-- セグメンテーションマスク付き検出 (Detection2DWithMask)
-- 可視化済み画像出力
+**主な機能：**
+- テキストプロンプトによる物体セグメンテーション（シングル・マルチクラス対応）
+- インスタンスごとのバウンディングボックス出力（`Detection2DArray`）
+- インスタンスごとのマスク出力（`DetectMaskArray`）※ピクセル座標・マスク画像の出力も対応
+- アノテーション付き可視化画像の出力
+- 画像サブスクリプションから切り離されたタイマー駆動の推論ループ
+- ROS 2 ライフサイクル完全対応（`configure` → `activate` → `deactivate` → `cleanup`）
+- 全パラメーターを `ros2 param set` でランタイムに変更可能
 
 <p align="right">(<a href="#readme-top">上に戻る</a>)</p>
 
 
 ## セットアップ
-本レポジトリのセットアップ方法について説明します．
 
 <p align="right">(<a href="#readme-top">上に戻る</a>)</p>
 
 
 ### 環境条件
 
-| System  | Version |
-| ------------- | ------------- |
-| Ubuntu | 22.04 (Jammy Jellyfish) |
-| ROS | Humble Hawksbill |
-| Python | 3.0~ |
+| システム | バージョン |
+| -------- | ---------- |
+| Ubuntu   | 24.04 (Noble Numbat) |
+| ROS 2    | Jazzy Jalisco |
+| Python   | 3.12 |
 
 ### インストール方法
-1. ROS2の`src`フォルダに移動します．
+1. ROS 2 の `src` フォルダに移動します．
    ```sh
-   cd　~/colcon_ws/src/
+   cd ~/colcon_ws/src/
    ```
-2. 本レポジトリをcloneします．
+2. 本レポジトリをクローンします．
    ```sh
-   git clone -b humble-devel https://github.com/TeamSOBITS/sam3_ros.git
+   git clone https://github.com/TeamSOBITS/sam3_ros.git
    ```
-3. レポジトリの中へ移動します．
+3. レポジトリの中へ移動し，依存パッケージをインストールします．
    ```sh
    cd sam3_ros
+   bash install.sh
    ```
-4. 依存パッケージをインストールします．
-    ```sh
-    bash install.sh
-    ```
-5. パッケージをコンパイルします．
+4. パッケージをビルドします．
    ```sh
    cd ~/colcon_ws/
    colcon build --symlink-install
+   source install/setup.bash
    ```
-> [!NOTE]
-> 2026年3月2日時点において本パッケージを使用するにはsobits_interfaceのブランチをfeature/segmentationへ変更する必要があります. 現在はmainにmargeされている可能性もあるため確認してください.
+
 <p align="right">(<a href="#readme-top">上に戻る</a>)</p>
 
 
-### SAM 3 ウェイトファイルのダウンロード
-SAM 3 用の `sam3.pt` と SAM 3.1 用の `sam3.1_multiplex.pt` の2種類のチェックポイントを使用できます．
+### SAM3 ウェイトファイルのダウンロード
+SAM3 用の `sam3.pt` と SAM3.1 用の `sam3.1_multiplex.pt` の2種類のチェックポイントを使用できます．
 
-SAM 3 の重みファイルはライセンスの都合上，自動ではダウンロードされません．  
+ライセンスの都合上，重みファイルは自動でダウンロードされません．
 使用するチェックポイントを**事前に手動でダウンロードしてください**．
 
-1. Hugging Face 上の [**SAM 3 モデルページ**](https://huggingface.co/facebook/sam3) または [**SAM 3.1 モデルページ**](https://huggingface.co/facebook/sam3.1) にアクセスし，
-   モデルの重みファイルへのアクセスをリクエストしてください．
+1. Hugging Face 上の [**SAM3 モデルページ**](https://huggingface.co/facebook/sam3) または [**SAM3.1 モデルページ**](https://huggingface.co/facebook/sam3.1) にアクセスし，重みファイルへのアクセスをリクエストします．
 
 2. 承認後，[`sam3.pt`](https://huggingface.co/facebook/sam3/resolve/main/sam3.pt?download=true) または [`sam3.1_multiplex.pt`](https://huggingface.co/facebook/sam3.1/resolve/main/sam3.1_multiplex.pt?download=true) をダウンロードします．
 
-3. ダウンロードしたチェックポイント（`sam3.pt` または `sam3.1_multiplex.pt`）を以下のディレクトリに配置してください．
-   - ウェイトディレクトリ（[`sam3_ros/weights`](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights)）
+3. ダウンロードしたファイルを[weight](./weights)のディレクトリに配置します.
 
 <p align="right">(<a href="#readme-top">上に戻る</a>)</p>
 
 
 ## 実行・操作方法
-1. カメラを起動し，[sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py)の**image_topic_name**を使用するカメラのトピック名に書き換える．
-   
-   例
+
+1. カメラを起動し，`image_topic_name` をカメラトピックに合わせて起動します：
    ```sh
-   default_value="/camera/color/image_raw"             # orbbec_series
+   ros2 launch sam3_ros sam3.launch.py image_topic_name:=/camera/color/image_raw
    ```
-2. RGBDカメラを使用する場合は，[sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py)の**point_cloud_topic**も使用するカメラの点群のトピック名に書き換える．
-   
-   例
+
+2. 起動時に自動で configure・activate する場合：
    ```sh
-   default_value="/camera/depth_registered/points"     # orbbec_series
+   ros2 launch sam3_ros sam3.launch.py auto_configure_2d:=true auto_activate_2d:=true
    ```
-3. ウェイトファイルを設定\
-    用意したウェイトファイルを[weightsディレクトリ](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/weights)に入れる．
-4. [sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py)の**weight_file**を，手順3で設定したウェイトファイル名に書き換える．
+
+3. ライフサイクルを手動で管理する場合：
    ```sh
-   default_value=os.path.join(get_package_share_directory("sam3_ros"), "weights", "sam3.pt")  # or "sam3.1_multiplex.pt"
+   ros2 launch sam3_ros sam3.launch.py
+   ros2 lifecycle set /sam3_node configure
+   ros2 lifecycle set /sam3_node activate
    ```
-5. colcon buildを実行
+
+4. ランタイムにテキストプロンプトを変更する（再起動不要）：
    ```sh
-   cd ~/colcon_ws/
-   colcon build --symlink-install
+   ros2 param set /sam3_node prompt_text "['chair', 'table']"
    ```
-6. SAM 3 を起動
-    ```sh
-    ros2 launch sam3_ros sam3.launch.py
-    ```
-   例: 起動時に SAM 3 を Configure のみして Activate しない場合
-    ```sh
-    ros2 launch sam3_ros sam3.launch.py auto_configure_2d:=True auto_activate_2d:=False
-    ```
+
+5. モデルを切り替える場合（deactivate → cleanup → パラメーター変更 → configure → activate）：
+   ```sh
+   ros2 lifecycle set /sam3_node deactivate
+   ros2 lifecycle set /sam3_node cleanup
+   ros2 param set /sam3_node weight_file sam3.1_multiplex.pt
+   ros2 lifecycle set /sam3_node configure
+   ros2 lifecycle set /sam3_node activate
+   ```
 
 <p align="right">(<a href="#readme-top">上に戻る</a>)</p>
 
 
 ## パラメーター
-以下は[sam3.launch.py](https://github.com/TeamSOBITS/sam3_ros/blob/humble-devel/launch/sam3.launch.py)で設定できるパラメーターである．
 
-| パラメーター名  | 説明 | デフォルト値 |
-| ------------- | ------------- | ------------- |
-| weight_file               | SAM3 の重みファイル | sam3.pt |
-| prompt_text               | セグメンテーション対象クラス（文字列配列） | ["object"] |
-| threshold                 | マスク生成の信頼度閾値 | 0.75 |
-| half                      | FP16 推論を有効にするか | True |
-| image_show                | 推論時に Ultralytics 側の表示を有効化 | False |
-| auto_configure_2d         | 起動時に SAM3 ライフサイクルノードを Configure するか | True |
-| auto_activate_2d          | 起動時に SAM3 ライフサイクルノードを Activate するか | True |
-| auto_configure_3d         | 起動時に Image to Position ライフサイクルノードを Configure するか | True |
-| auto_activate_3d          | 起動時に Image to Position ライフサイクルノードを Activate するか | True |
-| use_bbox_to_3d            | `bbox_to_3d` の3D検出パイプラインを起動するか | True |
-| use_mask_to_3d            | `mask_to_3d` の3D検出パイプラインを起動するか．`publish_mask` も `True` である必要があります | False |
-| cluster_tolerance         | どの程度離れた点群までは同一の物体とみなすかのしきい値．BoundingBox内に点群を飛ばした場合に，対象物に点群があたり，しきい値いないにある点群を1物体とみなしクラス分けを行います． そのため，あまり大きくすると点群1つ1つの探索範囲が広がり処理が遅くなってしまいます． | 0.01 |
-| min_clusterSize           | どの程度の数以下の点群の集まりは対象物の点群から棄却するかのしきい値．点群をクラス分けした際に，この数以下の点群数だったらノイズとみなし棄却します． | 100 |
-| max_clusterSize           | どの程度の数以上の点群の集まりは対象物の点群から棄却するかのしきい値．点群をクラス分けした際に，この数以上の点群数だったら全く別の対象物(物体だったら床の点群など)を捉えてしまったとみなし棄却します． | 20000 |
-| noise_point_cloud_range   | 対象の物体の点群からノイズ面を除去し，中心座標に近づけるため除去量．クラス分けした点群から物体を抽出した後，床や背後の壁，左右の壁などx,y,z方向に点群をこの値分，更にカットします． こうすることで，より物体の部分のみにかかる点群に絞ることができます． しかし値を大きくしすぎると，物体分の点群まで多く削いでしまうため注意が必用です． | 0.01 |
-| fast_shot                 | fast_shotを有効にするかどうか | true |
-| enable_id                 | 検出した物体のラベルの後ろにIDをつけるかどうか(例: apple_01) | false |
+以下のパラメーターはランチファイルまたは `ros2 param set` で設定できます．
+
+| パラメーター名         | 説明                                                                                          | デフォルト値                      | ランタイム変更 |
+| ---------------------- | --------------------------------------------------------------------------------------------- | --------------------------------- | -------------- |
+| `weight_file`          | SAM3 の重みファイル名                                                                         | `sam3.pt`                         | cleanup 後のみ |
+| `weights_path`         | 重みファイルが格納されているディレクトリ                                                       | `<package>/weights`               | cleanup 後のみ |
+| `prompt_text`          | セグメンテーション対象クラスのテキストプロンプト（文字列配列）                                | `['']`                            | 可             |
+| `threshold`            | マスク生成の信頼度閾値（0.0, 1.0]                                                             | `0.75`                            | 可             |
+| `inference_hz`         | 推論レート（Hz）．タイマー駆動で最新フレームを処理する                                        | `5.0`                             | 可             |
+| `half`                 | FP16 推論を有効にするか（CUDA が必要）                                                        | `true`                            | 不可           |
+| `image_show`           | Ultralytics 組み込みの可視化ウィンドウを有効にするか                                          | `false`                           | 不可           |
+| `publish_mask`         | `object_masks` トピック（`DetectMaskArray`）を配信するか                                      | `false`                           | 可             |
+| `publish_mask_pixels`  | 各マスクにピクセル座標リスト（`pixel_x`/`pixel_y`）を含めるか                                | `false`                           | 可             |
+| `publish_mask_image`   | 各 `DetectMask` にバイナリマスク画像フィールドを含めるか                                      | `false`                           | 可             |
+| `image_reliability`    | 画像サブスクリプションの QoS 信頼性（`best_effort`，`reliable`，`system_default` など）        | `best_effort`                     | inactive 時のみ|
+| `device`               | 推論デバイス（`cuda`，`cpu`，`cuda:0` など）                                                  | CUDA 利用可能なら `cuda`，否は `cpu` | 不可           |
+| `auto_configure_2d`    | 起動時に SAM3 ライフサイクルノードを Configure するか                                         | `false`                           | —              |
+| `auto_activate_2d`     | 起動時に SAM3 ライフサイクルノードを Activate するか                                          | `false`                           | —              |
+| `auto_configure_3d`    | 起動時に image_to_position ライフサイクルノードを Configure するか                            | `false`                           | —              |
+| `auto_activate_3d`     | 起動時に image_to_position ライフサイクルノードを Activate するか                             | `false`                           | —              |
+| `use_bbox_to_3d`       | `bbox_to_3d` の3D検出パイプラインを起動するか                                                 | `false`                           | —              |
+| `use_mask_to_3d`       | `mask_to_3d` パイプラインを起動するか（`publish_mask:=true` が必要）                          | `false`                           | —              |
+
+> **注意：** `weight_file` および `weights_path` は，ノードが `unconfigured` 状態（`deactivate` + `cleanup` 後）のときのみ変更できます．
 
 <p align="right">(<a href="#readme-top">上に戻る</a>)</p>
 
 
-### Publications
-| Topic名                                  | 型                        | 説明            |
-| --------------------------------------- | ------------------------ | ------------- |
-| `/sam3_ros/object_boxes`                | Detection2DArray         | バウンディングボックスのみ |
-| `/sam3_ros/object_detections_with_mask` | Detection2DWithMaskArray | マスク付き検出結果     |
-| `/sam3_ros/segmented_image`             | sensor_msgs/Image        | 可視化画像         |
+## トピック
+
+### 配信（Publications）
+
+| トピック名                   | 型                                    | 説明                                       |
+| ---------------------------- | ------------------------------------- | ------------------------------------------ |
+| `<node>/object_boxes`        | `vision_msgs/Detection2DArray`        | 検出インスタンスごとのバウンディングボックス |
+| `<node>/object_masks`        | `sobits_interfaces/DetectMaskArray`   | インスタンスマスク（`publish_mask:=true` 時） |
+| `<node>/detected_image`      | `sensor_msgs/Image`                   | アノテーション付き可視化画像               |
+
+### 購読（Subscriptions）
+
+| トピック名             | 型                      | 説明               |
+| ---------------------- | ----------------------- | ------------------ |
+| `<image_topic_name>`   | `sensor_msgs/Image`     | 入力カメラ画像     |
+
+> `<node>` のデフォルトは `sam3_node` です．ランチ引数 `node_name` で変更できます．
 
 <p align="right">(<a href="#readme-top">上に戻る</a>)</p>
 
 
 ## デモ
-| 物体検出 | 物体認識 | インスタンスセグメンテーション |
+| 物体検出 | マルチクラス | インスタンスセグメンテーション |
 |:---:|:---:|:---:|
 | ![](docs/sam3_object_raw.png) | ![](docs/sam3_multiclass_raw.png) | ![](docs/sam3_instant_raw.png) |
 | ![](docs/sam3_object_result.png) | ![](docs/sam3_multiclass_result.png) | ![](docs/sam3_instant_result.png) |

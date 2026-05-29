@@ -12,6 +12,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     image_topic_name = LaunchConfiguration("image_topic_name")
     weight_file = LaunchConfiguration("weight_file")
+    weights_path = LaunchConfiguration("weights_path")
     auto_configure_2d = LaunchConfiguration("auto_configure_2d")
     auto_activate_2d = LaunchConfiguration("auto_activate_2d")
     auto_configure_3d = LaunchConfiguration("auto_configure_3d")
@@ -24,7 +25,10 @@ def generate_launch_description():
     publish_mask = LaunchConfiguration("publish_mask")
     publish_mask_pixels = LaunchConfiguration("publish_mask_pixels")
     publish_mask_image = LaunchConfiguration("publish_mask_image")
+    image_reliability = LaunchConfiguration("image_reliability")
+    device = LaunchConfiguration("device")
     namespace = LaunchConfiguration("namespace")
+    node_name = LaunchConfiguration("node_name")
     bbox_to_3d_params_file = LaunchConfiguration("bbox_to_3d_params_file")
     mask_to_3d_params_file = LaunchConfiguration("mask_to_3d_params_file")
     use_bbox_to_3d = LaunchConfiguration("use_bbox_to_3d")
@@ -32,14 +36,24 @@ def generate_launch_description():
 
     launch_args = [
         DeclareLaunchArgument(
+            "namespace",
+            default_value="",
+            description="Namespace for the nodes",
+        ),
+        DeclareLaunchArgument(
+            "node_name",
+            default_value="sam3_node",
+            description="Name of the SAM3 node",
+        ),
+        DeclareLaunchArgument(
             "use_sim_time",
-            default_value="False",
+            default_value="false",
             description="Use simulation clock.",
         ),
         DeclareLaunchArgument(
             "image_topic_name",
             description="ROS Topic Name of sensor_msgs/msg/Image message. (sensor_msgs/msg/Image)",
-            default_value="camera/color/image_raw",                ## realsense
+            default_value="camera/color/image_raw",              ## realsense
             # default_value="rgb/image_raw",                       ## azure_kinect
             # default_value="camera/color/image_raw",              ## orbbec_series
             # default_value="camera/rgb/image_raw",                ## xtion
@@ -51,36 +65,38 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "weight_file",
-            default_value=os.path.join(
-                get_package_share_directory("sam3_ros"), 
-                "weights", 
-                "sam3.pt" # "sam3.pt" or "sam3.1_multiplex.pt"
-            ),
-            description="Weight file path",
+            default_value="sam3.pt",
+            # default_value="sam3.1_multiplex.pt",
+            description="Weight file name",
+        ),
+        DeclareLaunchArgument(
+            "weights_path",
+            default_value=os.path.join(get_package_share_directory("sam3_ros"), "weights"),
+            description="Directory path where weight files are stored",
         ),
         DeclareLaunchArgument(
             "auto_configure_2d",
-            default_value="True",
+            default_value="false",
             description="Whether to configure the SAM3 lifecycle node on startup",
         ),
         DeclareLaunchArgument(
             "auto_activate_2d",
-            default_value="True",
+            default_value="false",
             description="Whether to activate the SAM3 lifecycle node on startup",
         ),
         DeclareLaunchArgument(
             "auto_configure_3d",
-            default_value="True",
+            default_value="false",
             description="Whether to configure the Image to Position lifecycle node on startup",
         ),
         DeclareLaunchArgument(
             "auto_activate_3d",
-            default_value="True",
+            default_value="false",
             description="Whether to activate the Image to Position lifecycle node on startup",
         ),
         DeclareLaunchArgument(
             "image_show",
-            default_value="False",
+            default_value="false",
             description="Flag to show image with predictions",
         ),
         DeclareLaunchArgument(
@@ -90,7 +106,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "prompt_text",
-            default_value="['object']",
+            default_value="['chair']",
             # default_value="['object on the table']",
             # default_value="['metal cup', 'banana', 'pen', 'paper cup', 'headphone', 'dice', 'pringles potato chips', 'game controller']",
             # default_value="['red object']",
@@ -98,33 +114,28 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "inference_hz",
-            default_value="12.0",
+            default_value="10.0",
             description="SAM3 inference rate in Hz (process latest frame by timer)",
         ),
         DeclareLaunchArgument(
             "half",
-            default_value="False",
+            default_value="true",
             description="Use FP16 inference (only enable if CUDA is available)",
         ),
         DeclareLaunchArgument(
             "publish_mask",
-            default_value="False",
+            default_value="false",
             description="Publish object_masks topic (DetectMaskArray)",
         ),
         DeclareLaunchArgument(
             "publish_mask_pixels",
-            default_value="False",
+            default_value="false",
             description="Publish mask coordinates (pixel_x/pixel_y)",
         ),
         DeclareLaunchArgument(
             "publish_mask_image",
-            default_value="False",
+            default_value="false",
             description="Publish mask image field in DetectMask",
-        ),
-        DeclareLaunchArgument(
-            "namespace",
-            default_value="",
-            description="Namespace for the nodes",
         ),
         DeclareLaunchArgument(
             "bbox_to_3d_params_file",
@@ -146,24 +157,35 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "use_bbox_to_3d",
-            default_value="True",
+            default_value="false",
             description="Whether to launch bbox_to_3d",
         ),
         DeclareLaunchArgument(
             "use_mask_to_3d",
-            default_value="False",
+            default_value="false",
              description="Whether to launch mask_to_3d (requires publish_mask to be True)",
+        ),
+        DeclareLaunchArgument(
+            "image_reliability",
+            default_value="best_effort",
+            description="QoS reliability for the image subscription: 'best_effort', 'reliable', 'system_default', 'best_available', or 'unknown'",
+        ),
+        DeclareLaunchArgument(
+            "device",
+            default_value="cuda",
+            description="Inference device: 'cuda', 'cpu', or 'cuda:0'",
         ),
     ]
 
     sam3_node_cmd = Node(
         package="sam3_ros",
         executable="sam3_node",
-        name="sam3_ros",
+        name=node_name,
         namespace=namespace,
         parameters=[
             {
                 "weight_file": weight_file,
+                "weights_path": weights_path,
                 "auto_configure": auto_configure_2d,
                 "auto_activate": auto_activate_2d,
                 "image_topic_name": image_topic_name,
@@ -175,6 +197,8 @@ def generate_launch_description():
                 "publish_mask": publish_mask,
                 "publish_mask_pixels": publish_mask_pixels,
                 "publish_mask_image": publish_mask_image,
+                "image_reliability": image_reliability,
+                "device": device,
                 "use_sim_time": use_sim_time,
             },
         ],
