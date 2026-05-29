@@ -33,6 +33,7 @@ class Sam3Node(LifecycleNode):
         super().__init__("sam3_ros")
 
         self.declare_parameter("weight_file", "sam3.pt")
+        self.declare_parameter("weights_path", "")
         self.declare_parameter("auto_configure", True)
         self.declare_parameter("auto_activate", True)
         self.declare_parameter("threshold", 0.75)
@@ -58,7 +59,10 @@ class Sam3Node(LifecycleNode):
         self._sub = None
         self._inference_timer = None
 
-        self.weight_file = self.get_parameter("weight_file").value
+        self.weight_file = os.path.join(
+            self.get_parameter("weights_path").value,
+            self.get_parameter("weight_file").value,
+        )
         self.threshold = float(self.get_parameter("threshold").value)
         self.half = self.get_parameter("half").value
         self.image_topic = self.get_parameter("image_topic_name").value
@@ -74,7 +78,8 @@ class Sam3Node(LifecycleNode):
         self.device = self.get_parameter("device").value
 
         if not os.path.exists(self.weight_file):
-            self.get_logger().warn(f"Weight file not found at configure time: {self.weight_file}")
+            self.get_logger().error(f"Model file not found: {self.weight_file}")
+            return TransitionCallbackReturn.FAILURE
         if not 0.0 < self.threshold <= 1.0:
             self.get_logger().error(f"threshold must be in (0.0, 1.0], got {self.threshold}")
             return TransitionCallbackReturn.FAILURE
@@ -92,7 +97,9 @@ class Sam3Node(LifecycleNode):
             )
             return TransitionCallbackReturn.FAILURE
 
-        self.get_logger().info(f"Weight file: {self.weight_file}")
+        self.get_logger().info(f"Weight file: {self.get_parameter('weight_file').value}")
+        self.get_logger().info(f"Weights path: {self.get_parameter('weights_path').value}")
+        self.get_logger().info(f"Weight file (resolved): {self.weight_file}")
         self.get_logger().info(f"Threshold: {self.threshold}")
         self.get_logger().info(f"Half precision: {self.half}")
         self.get_logger().info(f"Image topic: {self.image_topic}")
