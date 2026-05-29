@@ -321,20 +321,7 @@ class Sam3Node(LifecycleNode):
 
     def process_image(self, msg: Image) -> None:
 
-        encoding = msg.encoding
-        cv_image = self._cv_bridge.imgmsg_to_cv2(msg)
-
-        if encoding == 'bgr8':
-            pass
-        elif encoding == 'bgra8':
-            cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGRA2BGR)
-        elif encoding == 'rgba8':
-            cv_image = cv2.cvtColor(cv_image, cv2.COLOR_RGBA2BGR)
-        elif encoding == 'rgb8':
-            cv_image = cv2.cvtColor(cv_image, cv2.COLOR_RGB2BGR)
-        else:
-            self.get_logger().error(f"Unsupported encoding: {encoding}")
-            return
+        cv_image = self._cv_bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
         if self._last_stamp is None or msg.header.stamp != self._last_stamp:
             self._predictor.set_image(cv_image)
