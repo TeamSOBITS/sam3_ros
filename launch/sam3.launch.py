@@ -12,6 +12,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     image_topic_name = LaunchConfiguration("image_topic_name")
     weight_file = LaunchConfiguration("weight_file")
+    weights_path = LaunchConfiguration("weights_path")
     auto_configure_2d = LaunchConfiguration("auto_configure_2d")
     auto_activate_2d = LaunchConfiguration("auto_activate_2d")
     auto_configure_3d = LaunchConfiguration("auto_configure_3d")
@@ -64,12 +65,14 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "weight_file",
-            default_value=os.path.join(
-                get_package_share_directory("sam3_ros"), 
-                "weights", 
-                "sam3.pt" # "sam3.pt" or "sam3.1_multiplex.pt"
-            ),
-            description="Weight file path",
+            default_value="sam3.pt",
+            # default_value="sam3.1_multiplex.pt",
+            description="Weight file name",
+        ),
+        DeclareLaunchArgument(
+            "weights_path",
+            default_value=os.path.join(get_package_share_directory("sam3_ros"), "weights"),
+            description="Directory path where weight files are stored",
         ),
         DeclareLaunchArgument(
             "auto_configure_2d",
@@ -182,6 +185,7 @@ def generate_launch_description():
         parameters=[
             {
                 "weight_file": weight_file,
+                "weights_path": weights_path,
                 "auto_configure": auto_configure_2d,
                 "auto_activate": auto_activate_2d,
                 "image_topic_name": image_topic_name,
