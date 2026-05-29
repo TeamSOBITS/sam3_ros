@@ -238,14 +238,16 @@ class Sam3Node(LifecycleNode):
     def on_parameter_update(self, params) -> SetParametersResult:
         try:
             for param in params:
-                if param.name == "weight_file":
-                    if self._state_machine.current_state[1] == "active":
-                        return SetParametersResult(successful=False, reason="weight_file cannot be changed while active; deactivate first")
-                    new_path = str(param.value)
-                    if not os.path.exists(new_path):
-                        return SetParametersResult(successful=False, reason=f"Weight file not found: {new_path}")
-                    self.weight_file = new_path
-                    self.get_logger().info(f"Updated weight_file: {self.weight_file}")
+                if param.name in ("weight_file", "weights_path"):
+                    if self._state_machine.current_state[1] != "unconfigured":
+                        return SetParametersResult(successful=False, reason=f"{param.name} can only be changed when unconfigured; deactivate and cleanup first")
+                    new_weight_file = str(param.value) if param.name == "weight_file" else self.get_parameter("weight_file").value
+                    new_weights_path = str(param.value) if param.name == "weights_path" else self.get_parameter("weights_path").value
+                    resolved = os.path.join(new_weights_path, new_weight_file)
+                    if not os.path.exists(resolved):
+                        return SetParametersResult(successful=False, reason=f"Model file not found: {resolved}")
+                    self.weight_file = resolved
+                    self.get_logger().info(f"Updated weight_file (resolved): {self.weight_file}")
                 elif param.name == "threshold":
                     value = float(param.value)
                     if not 0.0 < value <= 1.0:
@@ -302,7 +304,7 @@ class Sam3Node(LifecycleNode):
         self._latest_msg = msg
         self._latest_stamp = msg.header.stamp
 
-    def inference_timer_cb(self) -> None:
+    def _inference_timer_cb(self) -> None:
         if self._predictor is None:
             return
         if self._latest_msg is None:
