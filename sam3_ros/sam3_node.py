@@ -45,16 +45,18 @@ class Sam3Node(LifecycleNode):
         self.declare_parameter("publish_mask_pixels", True)
         self.declare_parameter("publish_mask_image", True)
         self.declare_parameter("image_reliability", "best_effort")
+        self.declare_parameter("device", "cuda" if torch.cuda.is_available() else "cpu")
 
-        self.predictor = None
-        self.sub = None
-        self.inference_timer = None
+        self._predictor = None
+        self._sub = None
+        self._inference_timer = None
+        self._param_cb_registered = False
 
     def on_configure(self, state: LifecycleState) -> TransitionCallbackReturn:
 
-        self.predictor = None
-        self.sub = None
-        self.inference_timer = None
+        self._predictor = None
+        self._sub = None
+        self._inference_timer = None
 
         self.weight_file = self.get_parameter("weight_file").value
         self.threshold = float(self.get_parameter("threshold").value)
@@ -69,6 +71,7 @@ class Sam3Node(LifecycleNode):
         self.publish_mask_pixels = self.get_parameter("publish_mask_pixels").value
         self.publish_mask_image = self.get_parameter("publish_mask_image").value
         self.image_reliability = self.get_parameter("image_reliability").value
+        self.device = self.get_parameter("device").value
 
         if not os.path.exists(self.weight_file):
             self.get_logger().warn(f"Weight file not found at configure time: {self.weight_file}")
@@ -100,6 +103,7 @@ class Sam3Node(LifecycleNode):
         self.get_logger().info(f"Publish mask pixels: {self.publish_mask_pixels}")
         self.get_logger().info(f"Publish mask image: {self.publish_mask_image}")
         self.get_logger().info(f"Image reliability: {self.image_reliability}")
+        self.get_logger().info(f"Device: {self.device}")
 
         self.image_qos_profile = QoSProfile(
             reliability=self._RELIABILITY_MAP[self.image_reliability],
@@ -107,31 +111,32 @@ class Sam3Node(LifecycleNode):
             durability=QoSDurabilityPolicy.VOLATILE,
             depth=1,
         )
-        self.pub_det = self.create_lifecycle_publisher(
+        self._pub_det = self.create_lifecycle_publisher(
             Detection2DArray, self.get_name() + "/object_boxes", 1
         )
-        self.pub_mask = self.create_lifecycle_publisher(
+        self._pub_mask = self.create_lifecycle_publisher(
             DetectMaskArray, self.get_name() + "/object_masks", 1
         )
-        self.pub_img = self.create_lifecycle_publisher(
+        self._pub_img = self.create_lifecycle_publisher(
             Image, self.get_name() + "/detected_image", 1
         )
 
-        self.bridge = CvBridge()
-        self.latest_msg = None
-        self.latest_stamp = None
-        self.last_processed_stamp = None
-        self.is_processing = False
-        self.last_stamp = None
+        self._cv_bridge = CvBridge()
+        self._latest_msg = None
+        self._latest_stamp = None
+        self._last_processed_stamp = None
+        self._is_processing = False
+        self._last_stamp = None
         self._param_cb = self.add_on_set_parameters_callback(self.on_parameter_update)
+        self._param_cb_registered = True
 
         super().on_configure(state)
         return TransitionCallbackReturn.SUCCESS
 
     def _release_predictor(self) -> None:
-        predictor = getattr(self, "predictor", None)
+        predictor = getattr(self, "_predictor", None)
         predictor_device = str(getattr(predictor, "device", ""))
-        self.predictor = None
+        self._predictor = None
         if predictor is not None:
             del predictor
         if "cuda" in predictor_device:
@@ -152,9 +157,9 @@ class Sam3Node(LifecycleNode):
             verbose=False,
         )
         try:
-            self.predictor = SAM3SemanticPredictor(overrides=overrides)
-            self.predictor.setup_model()
-            self.get_logger().info(f"SAM3 model loaded: {self.weight_file} on {self.predictor.device}")
+            self._predictor = SAM3SemanticPredictor(overrides=overrides)
+            self._predictor.setup_model()
+            self.get_logger().info(f"SAM3 model loaded: {self.weight_file} on {self._predictor.device}")
         except FileNotFoundError:
             self._release_predictor()
             self.get_logger().error(f"Model file '{self.weight_file}' does not exist")
@@ -164,12 +169,12 @@ class Sam3Node(LifecycleNode):
             self.get_logger().error(f"Failed to load SAM3 model: {e}")
             return TransitionCallbackReturn.ERROR
 
-        self.sub = self.create_subscription(
+        self._sub = self.create_subscription(
             Image, self.image_topic, self.image_cb, self.image_qos_profile
         )
-        self.inference_timer = self.create_timer(
+        self._inference_timer = self.create_timer(
             1.0 / self.inference_hz,
-            self.inference_timer_cb,
+            self._inference_timer_cb,
         )
 
         super().on_activate(state)
@@ -178,14 +183,14 @@ class Sam3Node(LifecycleNode):
     def on_deactivate(self, state: LifecycleState) -> TransitionCallbackReturn:
         self._release_predictor()
 
-        sub = getattr(self, "sub", None)
+        sub = getattr(self, "_sub", None)
         if sub is not None:
             self.destroy_subscription(sub)
-            self.sub = None
-        inference_timer = getattr(self, "inference_timer", None)
+            self._sub = None
+        inference_timer = getattr(self, "_inference_timer", None)
         if inference_timer is not None:
             self.destroy_timer(inference_timer)
-            self.inference_timer = None
+            self._inference_timer = None
 
         super().on_deactivate(state)
         return TransitionCallbackReturn.SUCCESS
@@ -206,8 +211,8 @@ class Sam3Node(LifecycleNode):
                     if not 0.0 < value <= 1.0:
                         return SetParametersResult(successful=False, reason="threshold must be in (0.0, 1.0]")
                     self.threshold = value
-                    if self.predictor is not None:
-                        self.predictor.args.conf = self.threshold
+                    if self._predictor is not None:
+                        self._predictor.args.conf = self.threshold
                     self.get_logger().info(f"Updated threshold: {self.threshold}")
                 elif param.name == "prompt_text":
                     parsed = self.parse_prompt_text(param.value)
@@ -220,11 +225,11 @@ class Sam3Node(LifecycleNode):
                     if value <= 0.0:
                         return SetParametersResult(successful=False, reason="inference_hz must be > 0")
                     self.inference_hz = max(value, 0.1)
-                    if hasattr(self, "inference_timer") and self.inference_timer is not None:
-                        self.destroy_timer(self.inference_timer)
-                        self.inference_timer = self.create_timer(
+                    if self._inference_timer is not None:
+                        self.destroy_timer(self._inference_timer)
+                        self._inference_timer = self.create_timer(
                             1.0 / self.inference_hz,
-                            self.inference_timer_cb,
+                            self._inference_timer_cb,
                         )
                     self.get_logger().info(f"Updated inference_hz: {self.inference_hz}")
                 elif param.name == "publish_mask":
@@ -254,38 +259,38 @@ class Sam3Node(LifecycleNode):
         return SetParametersResult(successful=True)
 
     def image_cb(self, msg: Image) -> None:
-        self.latest_msg = msg
-        self.latest_stamp = msg.header.stamp
+        self._latest_msg = msg
+        self._latest_stamp = msg.header.stamp
 
     def inference_timer_cb(self) -> None:
-        if self.predictor is None:
+        if self._predictor is None:
             return
-        if self.latest_msg is None:
+        if self._latest_msg is None:
             self.get_logger().warn(
                 f"Waiting for image on '{self.image_topic}'",
                 throttle_duration_sec=10.0,
             )
             return
-        if self.latest_stamp == self.last_processed_stamp:
+        if self._latest_stamp == self._last_processed_stamp:
             return
-        if self.is_processing:
+        if self._is_processing:
             return
 
-        self.is_processing = True
-        msg = self.latest_msg
-        stamp = self.latest_stamp
+        self._is_processing = True
+        msg = self._latest_msg
+        stamp = self._latest_stamp
         try:
             self.process_image(msg)
         except Exception as e:
             self.get_logger().error(f"SAM3 inference failed: {e}")
         finally:
-            self.last_processed_stamp = stamp
-            self.is_processing = False
+            self._last_processed_stamp = stamp
+            self._is_processing = False
 
     def process_image(self, msg: Image) -> None:
 
         encoding = msg.encoding
-        cv_image = self.bridge.imgmsg_to_cv2(msg)
+        cv_image = self._cv_bridge.imgmsg_to_cv2(msg)
 
         if encoding == 'bgr8':
             pass
@@ -299,9 +304,9 @@ class Sam3Node(LifecycleNode):
             self.get_logger().error(f"Unsupported encoding: {encoding}")
             return
 
-        if self.last_stamp is None or msg.header.stamp != self.last_stamp:
-            self.predictor.set_image(cv_image)
-            self.last_stamp = msg.header.stamp
+        if self._last_stamp is None or msg.header.stamp != self._last_stamp:
+            self._predictor.set_image(cv_image)
+            self._last_stamp = msg.header.stamp
 
         det_boxes = Detection2DArray()
         det_boxes.header = msg.header
@@ -314,7 +319,7 @@ class Sam3Node(LifecycleNode):
 
         for class_name in self.prompt_text:
 
-            results = self.predictor(text=[class_name])
+            results = self._predictor(text=[class_name])
             if results is None or len(results) == 0:
                 continue
 
@@ -343,7 +348,7 @@ class Sam3Node(LifecycleNode):
 
                     if self.publish_mask_image:
                         binary_mask = (mask_np * 255).astype(np.uint8)
-                        mask_msg.mask = self.bridge.cv2_to_imgmsg(binary_mask, encoding="mono8")
+                        mask_msg.mask = self._cv_bridge.cv2_to_imgmsg(binary_mask, encoding="mono8")
                         mask_msg.mask.header = msg.header
 
                     ohwp_mask = ObjectHypothesisWithPose()
@@ -399,10 +404,10 @@ class Sam3Node(LifecycleNode):
                 instance_id += 1
 
         if self.publish_mask:
-            self.pub_mask.publish(mask_array)
-        self.pub_det.publish(det_boxes)
-        self.pub_img.publish(
-            self.bridge.cv2_to_imgmsg(overlay, "bgr8")
+            self._pub_mask.publish(mask_array)
+        self._pub_det.publish(det_boxes)
+        self._pub_img.publish(
+            self._cv_bridge.cv2_to_imgmsg(overlay, "bgr8")
         )
 
     def parse_prompt_text(self, raw_value):
