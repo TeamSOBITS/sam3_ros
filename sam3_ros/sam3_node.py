@@ -185,17 +185,7 @@ class Sam3Node(LifecycleNode):
         return TransitionCallbackReturn.SUCCESS
 
     def on_deactivate(self, state: LifecycleState) -> TransitionCallbackReturn:
-        self._release_predictor()
-
-        sub = getattr(self, "_sub", None)
-        if sub is not None:
-            self.destroy_subscription(sub)
-            self._sub = None
-        inference_timer = getattr(self, "_inference_timer", None)
-        if inference_timer is not None:
-            self.destroy_timer(inference_timer)
-            self._inference_timer = None
-
+        self._destroy_subscription_and_timer()
         self._is_processing = False
 
         super().on_deactivate(state)
@@ -221,7 +211,18 @@ class Sam3Node(LifecycleNode):
         self._destroy_publishers()
         return super().on_cleanup(state)
 
+    def _destroy_subscription_and_timer(self) -> None:
+        sub = getattr(self, "_sub", None)
+        if sub is not None:
+            self.destroy_subscription(sub)
+            self._sub = None
+        inference_timer = getattr(self, "_inference_timer", None)
+        if inference_timer is not None:
+            self.destroy_timer(inference_timer)
+            self._inference_timer = None
+
     def on_shutdown(self, state: LifecycleState) -> TransitionCallbackReturn:
+        self._destroy_subscription_and_timer()
         self._release_predictor()
         self._remove_param_cb()
         self._destroy_publishers()
