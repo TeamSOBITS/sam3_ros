@@ -76,22 +76,22 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "auto_configure_2d",
-            default_value="true",
+            default_value="false",
             description="Whether to configure the SAM3 lifecycle node on startup",
         ),
         DeclareLaunchArgument(
             "auto_activate_2d",
-            default_value="true",
+            default_value="false",
             description="Whether to activate the SAM3 lifecycle node on startup",
         ),
         DeclareLaunchArgument(
             "auto_configure_3d",
-            default_value="true",
+            default_value="false",
             description="Whether to configure the Image to Position lifecycle node on startup",
         ),
         DeclareLaunchArgument(
             "auto_activate_3d",
-            default_value="true",
+            default_value="false",
             description="Whether to activate the Image to Position lifecycle node on startup",
         ),
         DeclareLaunchArgument(
@@ -106,7 +106,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "prompt_text",
-            default_value="['']",
+            default_value="['chair']",
             # default_value="['object on the table']",
             # default_value="['metal cup', 'banana', 'pen', 'paper cup', 'headphone', 'dice', 'pringles potato chips', 'game controller']",
             # default_value="['red object']",
@@ -119,7 +119,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "half",
-            default_value="false",
+            default_value="true",
             description="Use FP16 inference (only enable if CUDA is available)",
         ),
         DeclareLaunchArgument(
@@ -157,7 +157,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "use_bbox_to_3d",
-            default_value="true",
+            default_value="false",
             description="Whether to launch bbox_to_3d",
         ),
         DeclareLaunchArgument(
