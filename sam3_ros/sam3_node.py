@@ -138,11 +138,14 @@ class Sam3Node(LifecycleNode):
         predictor_device = str(getattr(predictor, "device", ""))
         self._predictor = None
         if predictor is not None:
+            if hasattr(predictor, "model") and predictor.model is not None:
+                predictor.model = None
             del predictor
+        gc.collect()
         if "cuda" in predictor_device:
             self.get_logger().info("Clearing CUDA cache")
+            torch.cuda.synchronize()
             torch.cuda.empty_cache()
-        gc.collect()
 
     def on_activate(self, state: LifecycleState) -> TransitionCallbackReturn:
 
@@ -152,6 +155,7 @@ class Sam3Node(LifecycleNode):
             mode="predict",
             model=self.weight_file,
             half=self.half,
+            device=self.device,
             save=False,
             show=self.image_show,
             verbose=False,
