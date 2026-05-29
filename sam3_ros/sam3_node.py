@@ -53,6 +53,21 @@ class Sam3Node(LifecycleNode):
         self._inference_timer = None
         self._param_cb_registered = False
 
+        self.weight_file = ""
+        self.weights_path = ""
+        self.threshold = 0.75
+        self.half = True
+        self.image_topic = "image_raw"
+        self.prompt_text = []
+        self.image_show = False
+        self.inference_hz = 5.0
+        self.publish_mask = True
+        self.publish_mask_pixels = True
+        self.publish_mask_image = True
+        self.image_reliability = "best_effort"
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.image_qos_profile = None
+
     def on_configure(self, state: LifecycleState) -> TransitionCallbackReturn:
 
         self._predictor = None
