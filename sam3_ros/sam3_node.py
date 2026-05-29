@@ -196,8 +196,36 @@ class Sam3Node(LifecycleNode):
             self.destroy_timer(inference_timer)
             self._inference_timer = None
 
+        self._is_processing = False
+
         super().on_deactivate(state)
         return TransitionCallbackReturn.SUCCESS
+
+    def _remove_param_cb(self) -> None:
+        if getattr(self, "_param_cb_registered", False):
+            try:
+                self.remove_on_set_parameters_callback(self._param_cb)
+            except Exception:
+                pass
+            self._param_cb_registered = False
+
+    def _destroy_publishers(self) -> None:
+        for attr in ("_pub_det", "_pub_mask", "_pub_img"):
+            pub = getattr(self, attr, None)
+            if pub is not None:
+                self.destroy_lifecycle_publisher(pub)
+                setattr(self, attr, None)
+
+    def on_cleanup(self, state: LifecycleState) -> TransitionCallbackReturn:
+        self._remove_param_cb()
+        self._destroy_publishers()
+        return super().on_cleanup(state)
+
+    def on_shutdown(self, state: LifecycleState) -> TransitionCallbackReturn:
+        self._release_predictor()
+        self._remove_param_cb()
+        self._destroy_publishers()
+        return super().on_shutdown(state)
 
     def on_parameter_update(self, params) -> SetParametersResult:
         try:
