@@ -142,15 +142,16 @@ class Sam3Node(LifecycleNode):
 
     def _release_predictor(self) -> None:
         predictor = getattr(self, "_predictor", None)
+        if predictor is None:
+            return
         predictor_device = str(getattr(predictor, "device", ""))
         self._predictor = None
-        if predictor is not None:
-            if hasattr(predictor, "model") and predictor.model is not None:
-                predictor.model = None
-            del predictor
+        if hasattr(predictor, "model") and predictor.model is not None:
+            predictor.model = None
+        del predictor
         gc.collect()
         if "cuda" in predictor_device:
-            self.get_logger().info("Clearing CUDA cache")
+            self.get_logger().info(f"Clearing CUDA cache (device: {predictor_device})")
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
 
@@ -214,6 +215,7 @@ class Sam3Node(LifecycleNode):
                 setattr(self, attr, None)
 
     def on_cleanup(self, state: LifecycleState) -> TransitionCallbackReturn:
+        self._release_predictor()
         self._remove_param_cb()
         self._destroy_publishers()
         return super().on_cleanup(state)
