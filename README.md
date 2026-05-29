@@ -96,10 +96,7 @@ Please **download the checkpoint manually** before launching the node.
 
 2. After approval, download [`sam3.pt`](https://huggingface.co/facebook/sam3/resolve/main/sam3.pt?download=true) and/or [`sam3.1_multiplex.pt`](https://huggingface.co/facebook/sam3.1/resolve/main/sam3.1_multiplex.pt?download=true).
 
-3. Place the downloaded file in the weights directory:
-   ```
-   sam3_ros/weights/
-   ```
+3. Place the downloaded file in the [weights](./weights/) directory.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
